@@ -1,0 +1,160 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.freemansoft</groupId>
+  <artifactId>build-lights</artifactId>
+  <packaging>jar</packaging>
+  <version>1.0-SNAPSHOT</version>
+  <name>build-lights</name>
+  <url>http://maven.apache.org</url>
+  <properties>
+    <rxtx.dll.dir>${project.build.directory}\lib</rxtx.dll.dir><!-- /target/lib -->
+    <rxtx.version>2.2pre2</rxtx.version>
+  </properties>
+  
+  <build>
+    <!-- To define the plugin version in your parent POM -->
+    <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>    
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-eclipse-plugin</artifactId>
+          <!--<version>2.8</version>-->
+          <configuration>
+            <downloadSources>true</downloadSources>
+            <downloadJavadocs>true</downloadJavadocs>
+          </configuration> 
+      </plugin>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <!--<version>2.2.1</version> -->
+        <configuration>
+            <archive>
+                <manifest>
+                    <mainClass>com.freemansoft.BuildLights</mainClass>
+                </manifest>
+            </archive>
+            <descriptorRefs>
+                <descriptorRef>jar-with-dependencies</descriptorRef>
+            </descriptorRefs>
+            <dependencySets>
+                <dependencySet>
+                    <includes>
+                        <include>*:jar:*</include>
+                    </includes>
+                    <excludes>
+                        <exclude>*:sources</exclude>
+                    </excludes>
+                </dependencySet>
+            </dependencySets>  
+        </configuration>
+      </plugin>
+      <plugin> 
+      <!-- this is really so we can get stuff copied out of m2_repo and into this project -->
+      <artifactId>maven-dependency-plugin</artifactId> 
+        <executions> 
+          <execution> 
+            <id>copy</id> 
+            <phase>compile</phase> 
+            <goals> 
+              <goal>copy</goal> 
+            </goals> 
+            <configuration> 
+              <artifactItems> 
+                <artifactItem> 
+                  <groupId>org.rxtx</groupId> 
+                  <artifactId>RXTXcomm</artifactId> 
+                  <version>${rxtx.version}</version> 
+                  <classifier>rxtxSerial</classifier>      
+                  <type>dll</type> 
+                  <outputDirectory>${rxtx.dll.dir}</outputDirectory> 
+                  <destFileName>rxtxSerial.dll</destFileName> 
+                </artifactItem> 
+                <artifactItem> 
+                  <groupId>org.rxtx</groupId> 
+                  <artifactId>rxtxcomm</artifactId> 
+                  <version>${rxtx.version}</version> 
+                  <type>jar</type> 
+                  <!-- ${project.build.outputDirectory} --><!-- /target/classes -->
+                  <!-- ${project.build.directory}/lib--><!-- /target -->
+                  <outputDirectory>${rxtx.dll.dir}</outputDirectory> <!-- /lib -->
+                  <destFileName>RXTXcomm.jar</destFileName> 
+                </artifactItem> 
+              </artifactItems> 
+            </configuration> 
+          </execution> 
+        </executions> 
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <forkMode>once</forkMode>
+          <workingDirectory>target</workingDirectory>
+          <argLine>-Djava.library.path=${rxtx.dll.dir}</argLine>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+	    <version>1.2</version>
+        <configuration>
+          <executable>java</executable>
+          <arguments>
+            <argument>-Djava.library.path=${rxtx.dll.dir}</argument>
+            <argument>-classpath</argument>
+            <classpath/>
+            <argument>com.freemansoft.BuildLights</argument>
+            <!--  change the COM port and data rate to match your device -->
+            
+            <argument>COM10</argument>
+            <argument>19200</argument>
+            <argument>com.freemansoft.ArduinoQuintRGB</argument>
+            
+            <!-- 
+    	    <argument>COM9</argument>
+    	    <argument>115200</argument>
+    	    <argument>com.freemansoft.LEDCube</argument>
+             -->
+             <!-- 
+            <argument>COM4</argument>
+            <argument>19200</argument>
+            <argument>com.freemansoft.AmbOrb</argument>
+            -->
+            <!--  target server -->
+            <argument>http://ci.jenkins-ci.org/cc.xml</argument>
+            <!-- comma separated list of build names up to max supported by device -->
+    	    <argument>plugins_virtualbox,plugins_vmware,plugins_chucknorris,plugins_xunit</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+
+    </plugins>
+  </build>
+
+  
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.8.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.rxtx</groupId>
+      <artifactId>RXTXcomm</artifactId>
+      <version>${rxtx.version}</version>
+    </dependency>
+          <dependency>
+        <groupId>log4j</groupId>
+        <artifactId>log4j</artifactId>
+        <version>1.2.16</version>
+      </dependency>
+  </dependencies>
+</project>

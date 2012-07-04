@@ -1,0 +1,116 @@
+<html>
+<ead>
+<title>Build Lights Readme</title>
+</ead>
+<body>
+<h2>VERSION 11.06</h2>
+
+<h2>Building and Configuration</h2>
+You can use maven to build this project and create eclipse projects.  A full verison of 
+rxtx is not available in the on line maven repo you will have to manually install it in your local
+m2_repo.  maven will use the copy in your local repo after whining a little about not finding it 
+on the Internet.
+</p>
+<ul>
+    <li>Download the rxtx sip file and unpack it.</li>  
+    <li>Create his directory your local m2_repo 
+        <br>$M2_REPO\org\rxtx\RXTXcomm\2.2pre2</li>
+    <li>Copy the two dll files and the jar using the following naming convention style
+        <ul>
+        <li>rxtxcomm.jar     --> RXTXcomm-2.2pre2-rtxcomm.jar</li>
+        <li>rxtxSerial.dll   --> RXTXcomm-2.2pre2-rxtxSerial.dll</li>
+        <li>// this jar missing 2.2pre2 rxtxParallel.dll --> RXTXcomm-2.2pre2-rxtxParallel.dll</li>
+        </ul>
+</ul>  
+<b>linux</b>  I haven't tried this on LINUX but it should work with the appropriate libraries.
+You will probably have to change the entry in the pom so that the so file will get installed
+instead of the .dll file.
+<p></p>
+Then compile the project and build the eclipse project configuration. We skip tests here because 
+they expect all supported hardware to be in hardcoded places. You will probably just run a couple 
+of them that are tied to your hardware
+<ol>
+<li>run <kbd>mvn -Dmaven.test.skip=true clean install</kbd></li>
+<li>run <kbd>mvn eclipse:eclipse</kbd></li>
+</ol>
+
+<h2>Execution and configuration</h2>
+The dll location needs to be added to the library load path if you wish to run programs
+from within Eclipse then you need to run them with additional configuration.
+
+<h3>eclipse</h3>
+<pre>
+    Set java.library.path=<path to project>/lib for each program or test you run in eclipse. Open
+        Run Configurations-->Arguments-->VMArgs  
+    and add the following with the appropriate path for your environment
+            -Djava.library.path=<path_to_project>/target/lib
+
+    The main program (BuildLights) requires parameters when run from command line or unit test.
+    The parameters are documented in the source file.  You can set the parameters.  Open
+        Run Configurations-->Arguments-->Program Arguments
+    and add the 5 parameters.  These settings run two lights based on Hudson builds on the Internet
+    with an attached light set on the specfieid COM port.
+        COM3 9600 com.freemansoft.ArduinoDualRGB http://ci.jenkins-ci.org/cc.xml plugins_virtualbox,plugins_checkstyle
+    or
+        COM9 115200 com.freemansoft.LEDCube http://ci.jenkins-ci.org/cc.xml plugins_virtualbox
+</pre>
+
+<h3>maven</h3>
+The pom.xml contains an <code>exec:exec</code> target that will run the program.  Edit the pom.xml
+so that it points at your port, speed, device type , server and builds.  Then run the program with 
+<kbd>mvn exec:exec</kbd>
+
+<h3>Standalone</h3>    
+When running stand alone programs, outside of Eclipse, you must do additional configuration
+<ul>
+    <li>Set java.library.path=<path to project>/target/lib to pick up the dll files</li>
+    <li>Add <path to project>/target/lib to the classpath to pick up the rxtxcomm.jar jar file</li>
+</ul>
+
+<b>It is not necesary to copy the rxtx code into your installed JRE if you set the classpath and 
+java.library.path correctly</b>    
+    
+<h2>Troubleshooting</h2>
+
+Yellow lights mean the program is confused either because there is no build server at the
+requested address or because one of the build names does not exists. Multiple-light systems
+provide a little more hints on what the problem might be.
+<ul>
+    <li>All build lights yellow means either there is no server at the requested address or 
+        that the program could not parse the returned XML</li>
+    <li>One light yellow probably means that build no longer exists</li>
+    <li>Errors will be logged via log4j for any yellow lights</li>
+</ul>
+<p></p>
+You could also have port and data rate mis-configuration. The system will fail with an obvious
+message if it cannot open the port.  It will hang if you connect to a real (but wrong) COM port.  
+It will also hang if you use the wrong data rate.   
+<p></p>
+Program threads may keep running after you've hit ctrl'c when running from <kbd>mvn exec:exec</kbd>.
+The command kills the maven process but not the actual Build Light program.
+You may have to use your process/task manager to kill the actual java program.
+<p></p>
+You can increase or decrease the amount of logging by changing the logging level
+in <code>src/main/resources/log4j.xml</code> Setting the default logging level to <code>INFO</code> will be pretty much silent while
+<code>DEBUG</code> will be very noisy.
+
+<h2>Supported Devices</h2>
+
+<ul>
+<li><b>SeeedStudio LED Cube</b>The cube is based on the Seeed Studio Rainbowduino.  You will need
+to update the firmware to run it as a build light.  This program currently expects to use
+version 1.0.7 available on my blog. It would be possible to create a new driver based on the
+original firmware.  The mapping from 2D frame buffer to 3D LED cube would have to then be
+done on the java side. The driver resets this device using DTR and then waits for it's initialization string. 
+You may see the lights blink after the reset.</li>
+<li><b>Dual Arduino</b>This is a simple Arduino board with two RGB LED lights. I built mine using
+the bright Sparkfun LED breakout boards.  This software expects to use firmware available on my blog
+because it knows how to send that firmware's command stream. 
+The driver resets this device using DTR and then waits for it's initialization string. 
+You may see the lights blink after the reset.</li>
+<li><b>Quad(Quint) Arduino</b>This is an Arduino system that uses an I2C expander chip to add additional PWM ports.  I used the Jee Labs Dimmer plug and the Sparkfun LED breakout boards.  This software expects to use firmware availabe on my blog because it understands that command structure.</li>
+</ul>
+  
+
+</body>
+</html>
