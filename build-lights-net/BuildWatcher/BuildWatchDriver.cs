@@ -99,18 +99,18 @@
                             bool allLastBuildsWereSuccessful = ourBuildWatcher.AllLastBuildsWereSuccessful(buildResults);
                             if (allLastBuildsWereSuccessful)
                             {
-                                device.SetColor(index, 0, 0, 12); // blue is good
+                                device.SetColor(index, 0, 0, 13); // blue is good
                             }
                             else
                             {
                                 bool allLastBuildsWerePartiallySuccessful = ourBuildWatcher.AllLastBuildsWerePartiallySuccessful(buildResults);
                                 if (allLastBuildsWerePartiallySuccessful)
                                 {
-                                    device.SetColor(index, 12, 12, 0); // yellow is partial
+                                    device.SetColor(index, 13, 9, 0); // yellow is partial
                                 }
                                 else
                                 {
-                                    device.SetColor(index, 12, 0, 0); // red is broken
+                                    device.SetColor(index, 13, 0, 0); // red is broken
                                 }
                             }
 
