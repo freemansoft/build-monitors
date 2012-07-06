@@ -253,15 +253,17 @@ namespace BuildWatcher
                 if (buildResult.LastBuild.Status == BuildStatus.InProgress)
                 {
                     // don't return false if in progress and was no previous build
-                    if (buildResult.PreviousBuild != null && buildResult.PreviousBuild.Status != BuildStatus.Succeeded)
+                    if (buildResult.PreviousBuild != null
+                        && buildResult.PreviousBuild.Status != BuildStatus.Succeeded)
                     {
                         log.Debug("Found previous build that was not successful " + buildResult.BuildDefinition.Name + " - " + buildResult.PreviousBuild.Status);
                         return false;
                     }
                 }
-                else if (buildResult.LastBuild.Status != BuildStatus.Succeeded)
+                else if (buildResult.LastBuild != null
+                        && buildResult.LastBuild.Status != BuildStatus.Succeeded)
                 {
-                    log.Debug("Found last build that was not successful " + buildResult.BuildDefinition.Name + " - " + buildResult.PreviousBuild.Status);
+                    log.Debug("Found last build that was not successful " + buildResult.BuildDefinition.Name + " - " + buildResult.LastBuild.Status);
                     //// not in progress and last build did not succeed
                     return false;
                 }
@@ -290,11 +292,11 @@ namespace BuildWatcher
                         return false;
                     }
                 }
-                else if (buildResult.LastBuild.Status != BuildStatus.Succeeded
-                        && buildResult.PreviousBuild.Status != BuildStatus.PartiallySucceeded)
+                else if (buildResult.LastBuild != null
+                        && buildResult.LastBuild.Status != BuildStatus.Succeeded
+                        && buildResult.LastBuild.Status != BuildStatus.PartiallySucceeded)
                 {
                     log.Debug("Found last build that failed " + buildResult.BuildDefinition.Name);
-
                     // not in progress and last build did not succeed
                     return false;
                 }
