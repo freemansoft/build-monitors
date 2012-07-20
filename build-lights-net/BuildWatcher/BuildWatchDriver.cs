@@ -3,12 +3,15 @@
     using System;
     using System.Collections.Generic;
     using System.Configuration;
+    using System.IO;
     using System.IO.Ports;
     using System.Text;
+    using System.Net;
     //// a log4net dependency  caused me to have to 
     //// change the VS2010 target from .Net Framework 4 Client Profile to .Net Framework 4
     using log4net;
     using Microsoft.TeamFoundation;
+    using Microsoft.TeamFoundation.Framework.Client; //// sometimes we lose a DB in the middle of the night
     using Microsoft.TeamFoundation.Build.Client;
     using Microsoft.TeamFoundation.VersionControl.Client;
 
@@ -82,31 +85,29 @@
             while (true)
             {
                 int index = 0;
-                //// we share a connection between all adapters so probably can get by only connecting once per sweep (or less)
-                allAdapters[0].Connection.Connect();
                 try
                 {
+                    //// we share a connection between all adapters so probably can get by only connecting once per sweep (or less)
+                    allAdapters[0].Connection.Connect();
                     foreach (TfsBuildAdapter ourBuildWatcher in allAdapters)
                     {
                         //// if they shared a connection we might only have to connect on the first one in the list
-                        //// ourBuildWatcher.Connection.Connect();
                         //// how often do we really need to get new build definitions?
-                        IBuildDefinition[] retreivedBuildDefinitions = ourBuildWatcher.GetBuildDefinitions();
-                        if (retreivedBuildDefinitions.Length > 0)
+                        LastTwoBuildResults[] buildResults = ourBuildWatcher.GetLastTwoBuilds();
+                        if (buildResults.Length > 0)
                         {
-                            LastTwoBuildResults[] buildResults = ourBuildWatcher.GetLastTwoBuilds();
                             bool someoneIsBuilding = ourBuildWatcher.SomeoneIsBuilding(buildResults);
                             bool allLastBuildsWereSuccessful = ourBuildWatcher.AllLastBuildsWereSuccessful(buildResults);
                             if (allLastBuildsWereSuccessful)
                             {
-                                device.SetColor(index, 0, 0, 13); // blue is good
+                                device.SetColor(index, 0, 13, 8); // green with blue is good
                             }
                             else
                             {
                                 bool allLastBuildsWerePartiallySuccessful = ourBuildWatcher.AllLastBuildsWerePartiallySuccessful(buildResults);
                                 if (allLastBuildsWerePartiallySuccessful)
                                 {
-                                    device.SetColor(index, 13, 9, 0); // yellow is partial
+                                    device.SetColor(index, 12, 9, 0); // pink is partial
                                 }
                                 else
                                 {
@@ -129,7 +130,21 @@
                 catch (TeamFoundationServiceUnavailableException e)
                 {
                     log.Error("Server unavailable " + e);
-                    //// keep trying
+                    //// could do additional pause here but just assume some transient problem
+                }
+                catch (IOException e)
+                {
+                    log.Error("IO Exception - often unexpected eof " + e);
+                    //// could do additional pause here but just assume some transient problem
+                }
+                catch (WebException e)
+                {
+                    log.Error("WebException - sometimes a timeout reading from stream if system is busy or goes down" + e);
+                }
+                catch (DatabaseConnectionException e)
+                {
+                    log.Error("Database gone " + e);
+                    System.Threading.Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings["ExceptionPauseInMilliseconds"]));
                 }
                 System.Threading.Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings["PollPauseInMilliseconds"]));
             }
