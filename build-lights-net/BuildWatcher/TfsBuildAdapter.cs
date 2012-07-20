@@ -152,7 +152,8 @@ namespace BuildWatcher
             buildDetailsQuerySpec.QueryOrder = BuildQueryOrder.StartTimeDescending;
             IBuildQueryResult buildResults = this.Connection.BuildServer.QueryBuilds(buildDetailsQuerySpec);
 
-            IDictionary<string, LastTwoBuildResults> results = new Dictionary<string, LastTwoBuildResults>();
+            IDictionary<string, LastTwoBuildResults> results = new SortedDictionary<string, LastTwoBuildResults>();
+            //// create placeholder result objects, one for each build, that we will fill with results
             foreach (IBuildDetail oneDetail in buildResults.Builds)
             {
                 if (!results.ContainsKey(oneDetail.BuildDefinition.Name))
@@ -160,6 +161,8 @@ namespace BuildWatcher
                     results.Add(oneDetail.BuildDefinition.Name, new LastTwoBuildResults(oneDetail.BuildDefinition, null, null));
                 }
             }
+            //// now fill the results.  
+            //// The builds are in reverse start time order so the last build shold always be first putting it in the last build slot
             foreach (IBuildDetail oneDetail in buildResults.Builds)
             {
                 LastTwoBuildResults corresponding = results[oneDetail.BuildDefinition.Name];
@@ -178,14 +181,15 @@ namespace BuildWatcher
                 foreach (String key in results.Keys)
                 {
                     LastTwoBuildResults oneResult = results[key];
-                    log.Debug(" Build Definition " + oneResult.BuildDefinition.Name);
-                    log.Debug("  Build " + oneResult.LastBuild.BuildNumber + " " + oneResult.LastBuild.Status);
+                    log.Debug(" " + oneResult.BuildDefinition.Name);
+                    log.Debug("  " + oneResult.LastBuild.BuildNumber + " " + oneResult.LastBuild.Status);
                     if (oneResult.PreviousBuild != null)
                     {
-                        log.Debug("  Build " + oneResult.PreviousBuild.BuildNumber + " " + oneResult.PreviousBuild.Status);
+                        log.Debug("  " + oneResult.PreviousBuild.BuildNumber + " " + oneResult.PreviousBuild.Status);
                     }
                 }
             }
+            // convert the dictionary to an array
             LastTwoBuildResults[] resultsAsArray = new LastTwoBuildResults[results.Values.Count];
             results.Values.CopyTo(resultsAsArray, 0);
             return resultsAsArray;
@@ -268,6 +272,7 @@ namespace BuildWatcher
                     return false;
                 }
             }
+            log.Debug("All builds were completely successful");
             //// assume success
             return true;
         }
@@ -301,7 +306,7 @@ namespace BuildWatcher
                     return false;
                 }
             }
-
+            log.Debug("All builds were at least partially successful");
             // assume success
             return true;
         }
