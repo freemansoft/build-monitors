@@ -1,7 +1,6 @@
-﻿///
-/// Written by Joe Freeman joe@freemansoft.com
+﻿/// Written by Joe Freeman joe@freemansoft.com
 /// Arduino RGB adapter for Arduino build light firmware used for 2, 4 and 32 RGB lamp build lights.
-/// 
+/// <br></br>
 /// Standard commands are
 /// color: ~c#[red][green][blue];
 /// where red, green and blue have values 0-15 representing brightness
@@ -14,7 +13,10 @@ namespace BuildWatcher
     using System.Text;
     using log4net;
 
-    public class ArduinoDualRGB
+    /// <summary>
+    /// Arduino driver class
+    /// </summary>
+    public class ArduinoDualRGB : IBuildIndicatorDevice
     {
         /// <summary>
         /// log4net logger
@@ -47,10 +49,16 @@ namespace BuildWatcher
         private SerialPort device;
 
         /// <summary>
+        /// the number of lamps in the device
+        /// </summary>
+        private int numLamps;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ArduinoDualRGB"/> class. a proxy for the Arduino controlled dual RGB unit
         /// </summary>
         /// <param name="device">Serial port the device is connected two.  Can be virtual com port for bluetooth</param>
         /// <param name="canReset">determines if the device can be reset through DTR or if is actually reset on connect</param>
+        /// <param name="numLamps">the number of lamps in the device, used when turning off all the lights</param>
         public ArduinoDualRGB(SerialPort device, bool canReset, int numLamps)
         {
             if (device == null)
@@ -75,6 +83,7 @@ namespace BuildWatcher
                     readBuffer[i] = (byte)this.device.ReadByte();
                     log.Debug("read " + i);
                 }
+
                 log.Debug("Hardware initialized returned string: " + readBuffer);
             }
             else
@@ -86,7 +95,8 @@ namespace BuildWatcher
                 }
             }
 
-            TurnOffLights(numLamps);
+            this.numLamps = numLamps;
+            this.TurnOffLights(numLamps);
         }
 
         /// <summary>
@@ -111,6 +121,11 @@ namespace BuildWatcher
         /// <param name="blue">vlaue of 0-15</param>
         public void SetColor(int deviceNumber, int red, int green, int blue)
         {
+            if (deviceNumber >= this.numLamps)
+            {
+                throw new ArgumentOutOfRangeException("device number " + deviceNumber + " is out of range:" + this.numLamps);
+            }
+
             byte[] buffer = new byte[7];
             buffer[0] = standardPrefix;
             buffer[1] = colorCommand;
@@ -130,6 +145,11 @@ namespace BuildWatcher
         /// <param name="offTimeHalfSeconds">blink off time 0-15</param>
         public void SetBlink(int deviceNumber, int onTimeHalfSeconds, int offTimeHalfSeconds)
         {
+            if (deviceNumber >= this.numLamps)
+            {
+                throw new ArgumentOutOfRangeException("device number " + deviceNumber + " is out of range:" + this.numLamps);
+            }
+
             byte[] buffer = new byte[10];
             buffer[0] = standardPrefix;
             buffer[1] = blinkCommand;
@@ -142,31 +162,6 @@ namespace BuildWatcher
             buffer[8] = this.ConvertIntToAsciiChar(offTimeHalfSeconds);
             buffer[9] = standardSuffix;
             this.SendAndWaitForAck(buffer);
-        }
-
-        /// <summary>
-        /// Converts a number ot it's hex ascii equivalent
-        /// </summary>
-        /// <param name="number">input between 0-15 </param>
-        /// <returns>ASCII character Hex equivalent of the number </returns>
-        public byte ConvertIntToAsciiChar(int number)
-        {
-            if (number < 0 || number > 15)
-            {
-                throw new ArgumentException("number out of single digit hex range " + number);
-            }
-
-            byte result;
-            if (number > 9)
-            {
-                result = (byte)('A' + number - 10); // we start at 10
-            }
-            else
-            {
-                result = (byte)('0' + number);
-            }
-
-            return result;
         }
 
         /// <summary>
@@ -187,6 +182,77 @@ namespace BuildWatcher
             }
 
             log.Debug("Received ack: " + Encoding.UTF8.GetString(readBuffer, 0, readBuffer.Length));
+        }
+
+        /// <summary>
+        ///  sets the indicator in device dependent fashion
+        /// </summary>
+        /// <param name="deviceNumber">build number or light number, 0 based</param>
+        /// <param name="buildSetSize">number of builds in set</param>
+        /// <param name="lastBuildsWereSuccessfulCount">number of completely successful builds</param>
+        /// <param name="lastBuildsWerePartiallySuccessfulCount">number of partially successful builds</param>
+        /// <param name="someoneIsBuildingCount">number of builds in progress</param>
+        public void Indicate(int deviceNumber, int buildSetSize, int lastBuildsWereSuccessfulCount, int lastBuildsWerePartiallySuccessfulCount, int someoneIsBuildingCount)
+        {
+            log.Debug("lamp:" + deviceNumber 
+                + " numBuilds:" + buildSetSize
+                + " completelySuccessful:" + lastBuildsWereSuccessfulCount
+                + " partiallySuccessful:" + lastBuildsWerePartiallySuccessfulCount
+                + " currentlyBuilding:" + someoneIsBuildingCount);
+            if (deviceNumber >= this.numLamps)
+            {
+                throw new ArgumentOutOfRangeException("device number " + deviceNumber + " is out of range:" + this.numLamps);
+            }
+
+            if (lastBuildsWereSuccessfulCount == buildSetSize)
+            {
+                this.SetColor(deviceNumber, 0, 13, 8); // green with blue is good
+            }
+            else
+            {
+                if (lastBuildsWerePartiallySuccessfulCount == buildSetSize)
+                {
+                    this.SetColor(deviceNumber, 12, 9, 0); // pink is partial
+                }
+                else
+                {
+                    this.SetColor(deviceNumber, 13, 0, 0); // red is broken
+                }
+            }
+
+            if (someoneIsBuildingCount > 0)
+            {
+                this.SetBlink(deviceNumber, 3, 3);
+            }
+            else
+            {
+                this.SetBlink(deviceNumber, 3, 0);
+            }
+        }
+
+        /// <summary>
+        /// Converts a number ot it's hex ascii equivalent
+        /// </summary>
+        /// <param name="number">input between 0-15 </param>
+        /// <returns>ASCII character Hex equivalent of the number </returns>
+        private byte ConvertIntToAsciiChar(int number)
+        {
+            if (number < 0 || number > 15)
+            {
+                throw new ArgumentException("number out of single digit hex range " + number);
+            }
+
+            byte result;
+            if (number > 9)
+            {
+                result = (byte)('A' + number - 10); // we start at 10
+            }
+            else
+            {
+                result = (byte)('0' + number);
+            }
+
+            return result;
         }
     }
 }

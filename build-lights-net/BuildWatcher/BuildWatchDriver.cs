@@ -5,18 +5,24 @@
     using System.Configuration;
     using System.IO;
     using System.IO.Ports;
-    using System.Text;
     using System.Net;
+    using System.Text;
     //// a log4net dependency  caused me to have to 
     //// change the VS2010 target from .Net Framework 4 Client Profile to .Net Framework 4
     using log4net;
     using Microsoft.TeamFoundation;
-    using Microsoft.TeamFoundation.Framework.Client; //// sometimes we lose a DB in the middle of the night
     using Microsoft.TeamFoundation.Build.Client;
+    using Microsoft.TeamFoundation.Framework.Client; //// sometimes we lose a DB in the middle of the night
     using Microsoft.TeamFoundation.VersionControl.Client;
 
+    /// <summary>
+    /// The main run loop for the build watcher
+    /// </summary>
     public static class BuildWatchDriver
     {
+        /// <summary>
+        /// log4net logger
+        /// </summary>
         private static ILog log = null;
 
         /// <summary>
@@ -28,36 +34,31 @@
             log4net.Config.BasicConfigurator.Configure();
             log = log4net.LogManager.GetLogger(typeof(BuildWatchDriver));
 
-            //// comment out these two lines if you don't have an arduino
             SerialPort port = ConfigureSerialPort();
-            ArduinoDualRGB device = new ArduinoDualRGB(port,
-                Convert.ToBoolean(ConfigurationManager.AppSettings["ArduinoResetOnConnect"]),
-                Convert.ToInt32(ConfigurationManager.AppSettings["ArduinoNumberOfLamps"]));
-            //// end comment out
+            IBuildIndicatorDevice device = ConfigureDevice(port);
 
             TfsBuildConnection ourBuildConnection = new TfsBuildConnection(
-                ConfigurationManager.AppSettings["TfsUrl"],
-                ConfigurationManager.AppSettings["TfsUsername"],
-                ConfigurationManager.AppSettings["TfsPassword"],
-                ConfigurationManager.AppSettings["TfsDomain"]
+                ConfigurationManager.AppSettings["Tfs.Url"],
+                ConfigurationManager.AppSettings["Tfs.Username"],
+                ConfigurationManager.AppSettings["Tfs.Password"],
+                ConfigurationManager.AppSettings["Tfs.Domain"]
               );
 
             List<TfsBuildAdapter> allAdapters = new List<TfsBuildAdapter>();
 
             //// we don't verify the length of the list vs the hardware's actual number of lights
             int index = 1;
-            while (ConfigurationManager.AppSettings["TeamProjectName" + index] != null)
+            while (ConfigurationManager.AppSettings["Tfs.TeamProjectName" + index] != null)
             {
-                log.Debug("Assembling Build adapter " + index + " for " + ConfigurationManager.AppSettings["BuildDefinitionNamePattern" + index]);
+                log.Debug("Assembling Build adapter " + index + " for " + ConfigurationManager.AppSettings["Tfs.BuildDefinitionNamePattern" + index]);
                 TfsBuildAdapter ourBuildWatcher = new TfsBuildAdapter(
                     ourBuildConnection,
-                    ConfigurationManager.AppSettings["TeamProjectName" + index],
-                    ConfigurationManager.AppSettings["BuildDefinitionNamePattern" + index]
+                    ConfigurationManager.AppSettings["Tfs.TeamProjectName" + index],
+                    ConfigurationManager.AppSettings["Tfs.BuildDefinitionNamePattern" + index]
                     );
                 allAdapters.Add(ourBuildWatcher);
                 index++;
             }
-
 
             //// this never returns so comment this out if you just want to see status of server on console
             //// comment out this block if you don't have an arduino
@@ -80,7 +81,7 @@
         /// </summary>
         /// <param name="allAdapters">a list of build specifications</param>
         /// <param name="device">our potentially multi-indicator device</param>
-        private static void MonitorStatus(List<TfsBuildAdapter> allAdapters, ArduinoDualRGB device)
+        private static void MonitorStatus(List<TfsBuildAdapter> allAdapters, IBuildIndicatorDevice device)
         {
             while (true)
             {
@@ -88,7 +89,7 @@
                 try
                 {
                     //// we share a connection between all adapters so probably can get by only connecting once per sweep (or less)
-                    allAdapters[0].Connection.Connect();
+                    allAdapters[index].Connection.Connect();
                     foreach (TfsBuildAdapter ourBuildWatcher in allAdapters)
                     {
                         //// if they shared a connection we might only have to connect on the first one in the list
@@ -96,37 +97,15 @@
                         LastTwoBuildResults[] buildResults = ourBuildWatcher.GetLastTwoBuilds();
                         if (buildResults.Length > 0)
                         {
-                            bool someoneIsBuilding = ourBuildWatcher.SomeoneIsBuilding(buildResults);
-                            bool allLastBuildsWereSuccessful = ourBuildWatcher.AllLastBuildsWereSuccessful(buildResults);
-                            if (allLastBuildsWereSuccessful)
-                            {
-                                device.SetColor(index, 0, 13, 8); // green with blue is good
-                            }
-                            else
-                            {
-                                bool allLastBuildsWerePartiallySuccessful = ourBuildWatcher.AllLastBuildsWerePartiallySuccessful(buildResults);
-                                if (allLastBuildsWerePartiallySuccessful)
-                                {
-                                    device.SetColor(index, 12, 9, 0); // pink is partial
-                                }
-                                else
-                                {
-                                    device.SetColor(index, 13, 0, 0); // red is broken
-                                }
-                            }
-
-                            if (someoneIsBuilding)
-                            {
-                                device.SetBlink(index, 3, 3);
-                            }
-                            else
-                            {
-                                device.SetBlink(index, 3, 0);
-                            }
+                            int someoneIsBuildingCount = ourBuildWatcher.SomeoneIsBuilding(buildResults);
+                            int lastBuildsWereSuccessfulCount = ourBuildWatcher.NumberOfSuccessfulBuilds(buildResults);
+                            int lastBuildsWerePartiallySuccessfulCount = ourBuildWatcher.NumberOfPartiallySuccessfulBuilds(buildResults);
+                            device.Indicate(index, buildResults.Length, lastBuildsWereSuccessfulCount, lastBuildsWerePartiallySuccessfulCount, someoneIsBuildingCount);
                         }
                         index++;
                     }
                 }
+
                 catch (TeamFoundationServiceUnavailableException e)
                 {
                     log.Error("Server unavailable " + e);
@@ -148,6 +127,7 @@
                 }
                 System.Threading.Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings["PollPauseInMilliseconds"]));
             }
+
         }
 
         /// <summary>
@@ -157,8 +137,8 @@
         private static SerialPort ConfigureSerialPort()
         {
             SerialPort port = new SerialPort();
-            port.PortName = ConfigurationManager.AppSettings["ArduinoSerialPort"];
-            port.BaudRate = Convert.ToInt32(ConfigurationManager.AppSettings["ArduinoBaudRate"]);
+            port.PortName = ConfigurationManager.AppSettings["Device.Serial.ComPort"];
+            port.BaudRate = Convert.ToInt32(ConfigurationManager.AppSettings["Device.Serial.DataRate"]);
             port.Handshake = Handshake.None;
             port.ReadTimeout = 500;
             port.WriteTimeout = 500;
@@ -173,46 +153,35 @@
         }
 
         /// <summary>
-        /// demonstrate how we would actually use this when monitoring a set of configured builds
+        /// Configure a device attached to the passed in port. This will attempt to connecto an arduino device
         /// </summary>
-        /// <param name="ourBuildWatcher">The Build adapter we use to communicat with TFS</param>
-        private static void QueryViaConfiguration(TfsBuildAdapter ourBuildWatcher)
+        /// <param name="port">Serial device that the indicator will use</param>
+        /// <returns>a serial device</returns>
+        private static IBuildIndicatorDevice ConfigureDevice(SerialPort port)
         {
-            //// query using our loaded configuration
+            IBuildIndicatorDevice device = null;
+            //// really should inject via DI here with constructor injection
+            if (ConfigurationManager.AppSettings["Device.Class"] == "Arduino.DualRGB")
             {
-                IBuildDefinition[] ourBuildDefinitions = ourBuildWatcher.GetBuildDefinitions();
-                log.Debug("Project " + ourBuildWatcher.OurTeamProject.Name + " with " + ourBuildDefinitions.Length + " " + ourBuildWatcher.DefinitionNamePattern + " Build definitions");
-                IQueuedBuild[] allQueuedForProj = ourBuildWatcher.GetQueuedBuilds();
-                log.Debug("Project " + ourBuildWatcher.OurTeamProject.Name + " with " + allQueuedForProj.Length + " queued builds");
-
-                LastTwoBuildResults[] resultsForCIBuilds = ourBuildWatcher.GetLastTwoBuilds();
-                bool someoneIsBuilding = ourBuildWatcher.SomeoneIsBuilding(resultsForCIBuilds);
-                bool allLastBuildsWereSuccessful = ourBuildWatcher.AllLastBuildsWereSuccessful(resultsForCIBuilds);
-                bool allLastBuildsWerePartiallySuccessful = ourBuildWatcher.AllLastBuildsWerePartiallySuccessful(resultsForCIBuilds);
-                log.Debug("Someone is Building: " + someoneIsBuilding
-                    + " all completed builds successful: " + allLastBuildsWereSuccessful
-                    + " all completed builds partially successful: " + allLastBuildsWerePartiallySuccessful
-                    );
+                log.Debug("Using ArduinoDualRGB device");
+                device = new ArduinoDualRGB(
+                    port,
+                    Convert.ToBoolean(ConfigurationManager.AppSettings["Arduino.ResetOnConnect"]),
+                    Convert.ToInt32(ConfigurationManager.AppSettings["Arduino.NumberOfLamps"]));
             }
-        }
 
-        /// <summary>
-        /// show how we would do this in a "non configured" situation where we wanted to walk the whole tree
-        /// </summary>
-        /// <param name="ourBuildWatcher">the build connection we use</param>
-        private static void QueryWholeTree(TfsBuildAdapter ourBuildWatcher)
-        {
-            //// query the whole tree
-            TeamProject[] allProjects = ourBuildWatcher.GetAllProjects();
-            foreach (TeamProject oneProject in allProjects)
+            else if (ConfigurationManager.AppSettings["Device.Class"] == "Freemometer") {
+                log.Debug("Using Freemometer device");
+                //// use the Freemometer Ikea clock hack
+                device = new Freemometer(port, Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellTime"]));
+            }
+
+            if (device == null)
             {
-                IBuildDefinition[] allDefsForProj = ourBuildWatcher.GetBuildDefinitions(oneProject, null);
-                log.Debug("Project " + oneProject.Name + " with " + allDefsForProj.Length + " build definitions");
-                IBuildDefinition[] ciBuildDefinitions = ourBuildWatcher.GetBuildDefinitions(oneProject, "CI*");
-                log.Debug("Project " + oneProject.Name + " with " + ciBuildDefinitions.Length + " CI Build definitions");
-                IQueuedBuild[] allQueuedForProj = ourBuildWatcher.GetQueuedBuilds(oneProject, null);
-                log.Debug("Project " + oneProject.Name + " with " + allQueuedForProj.Length + " queued builds");
+                throw new ConfigurationErrorsException("No Device Configured");
             }
+
+            return device;
         }
     }
 }
