@@ -114,10 +114,10 @@ namespace BuildWatcher
             {
                 spec = this.Connection.BuildServer.CreateBuildDefinitionSpec(oneProject.Name);
             }
+
             IBuildDefinitionQueryResult buildDefQueryRsult = this.Connection.BuildServer.QueryBuildDefinitions(spec);
             return buildDefQueryRsult.Definitions;
         }
-
 
         /// <summary>
         /// Retrieves the last two builds for all of the builds in our that match our definition name
@@ -125,7 +125,7 @@ namespace BuildWatcher
         /// <returns>build results</returns>
         public LastTwoBuildResults[] GetLastTwoBuilds()
         {
-            return GetLastTwoBuilds(this.OurTeamProject, this.DefinitionNamePattern);
+            return this.GetLastTwoBuilds(this.OurTeamProject, this.DefinitionNamePattern);
         }
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace BuildWatcher
         /// <param name="teamProject">the team project to uery against</param>
         /// <param name="buildDefinitionPattern">optional build definition pattern</param>
         /// <returns>build result pairs</returns>
-        public LastTwoBuildResults[] GetLastTwoBuilds(TeamProject teamProject, String buildDefinitionPattern)
+        public LastTwoBuildResults[] GetLastTwoBuilds(TeamProject teamProject, string buildDefinitionPattern)
         {
             log.Debug("Finding build results for definition pattern " + buildDefinitionPattern);
             IBuildDetailSpec buildDetailsQuerySpec;
@@ -176,9 +176,10 @@ namespace BuildWatcher
                     corresponding.PreviousBuild = oneDetail;
                 }
             }
+
             if (log.IsDebugEnabled)
             {
-                foreach (String key in results.Keys)
+                foreach (string key in results.Keys)
                 {
                     LastTwoBuildResults oneResult = results[key];
                     log.Debug(" " + oneResult.BuildDefinition.Name);
@@ -189,7 +190,7 @@ namespace BuildWatcher
                     }
                 }
             }
-            // convert the dictionary to an array
+            //// convert the dictionary to an array
             LastTwoBuildResults[] resultsAsArray = new LastTwoBuildResults[results.Values.Count];
             results.Values.CopyTo(resultsAsArray, 0);
             return resultsAsArray;
@@ -221,6 +222,7 @@ namespace BuildWatcher
             {
                 qbs = this.Connection.BuildServer.CreateBuildQueueSpec(oneProject.Name);
             }
+
             IQueuedBuildQueryResult foundQueuedBuilds = this.Connection.BuildServer.QueryQueuedBuilds(qbs);
             IQueuedBuild[] extractedQueuedBuilds = foundQueuedBuilds.QueuedBuilds;
             return extractedQueuedBuilds;
@@ -231,59 +233,70 @@ namespace BuildWatcher
         /// </summary>
         /// <param name="buildResults">buld results to be analyzed</param>
         /// <returns>true if any build in the result set is In Progress</returns>
-        public bool SomeoneIsBuilding(LastTwoBuildResults[] buildResults)
+        public int SomeoneIsBuilding(LastTwoBuildResults[] buildResults)
         {
+            int buildCount = 0;
             foreach (LastTwoBuildResults buildResult in buildResults)
             {
                 if (buildResult.LastBuild.Status == BuildStatus.InProgress)
                 {
                     log.Debug("Found build in progress: " + buildResult.BuildDefinition.Name);
-                    return true;
+                    buildCount++;
                 }
             }
 
-            return false;
+            return buildCount;
         }
 
         /// <summary>
         /// success means !failure in this method
         /// </summary>
         /// <param name="buildResults">build results to be analyzed</param>
-        /// <returns>true of all of the last actual builds for each result was successful looks earlier if last is in progress</returns>
-        public bool AllLastBuildsWereSuccessful(LastTwoBuildResults[] buildResults)
+        /// <returns>number of builds in completely succesful status</returns>
+        public int NumberOfSuccessfulBuilds(LastTwoBuildResults[] buildResults)
         {
+            int successfulBuildCount = 0;
             foreach (LastTwoBuildResults buildResult in buildResults)
             {
                 if (buildResult.LastBuild.Status == BuildStatus.InProgress)
                 {
-                    // don't return false if in progress and was no previous build
-                    if (buildResult.PreviousBuild != null
-                        && buildResult.PreviousBuild.Status != BuildStatus.Succeeded)
+                    // treat as not successful if in progress and was no previous build
+                    if (buildResult.PreviousBuild != null && buildResult.PreviousBuild.Status != BuildStatus.Succeeded)
                     {
-                        log.Debug("Found previous build that was not successful " + buildResult.BuildDefinition.Name + " - " + buildResult.PreviousBuild.Status);
-                        return false;
+                        log.Debug("Found previous build that partially failed " + buildResult.BuildDefinition.Name + " - " + buildResult.PreviousBuild.Status);
+                    }
+                    else
+                    {
+                        successfulBuildCount++;
                     }
                 }
-                else if (buildResult.LastBuild != null
-                        && buildResult.LastBuild.Status != BuildStatus.Succeeded)
+                else if (buildResult.LastBuild != null && buildResult.LastBuild.Status != BuildStatus.Succeeded)
                 {
-                    log.Debug("Found last build that was not successful " + buildResult.BuildDefinition.Name + " - " + buildResult.LastBuild.Status);
                     //// not in progress and last build did not succeed
-                    return false;
+                    log.Debug("Found last build that partially failed " + buildResult.BuildDefinition.Name + " - " + buildResult.LastBuild.Status);
+                }
+                else
+                {
+                    successfulBuildCount++;
                 }
             }
-            log.Debug("All builds were completely successful");
+
+            if (successfulBuildCount == buildResults.Length)
+            {
+                log.Debug("All builds were completely successful");
+            }
             //// assume success
-            return true;
+            return successfulBuildCount;
         }
 
         /// <summary>
         /// success means !failure in this method
         /// </summary>
         /// <param name="buildResults">a set of build results</param>
-        /// <returns>true if all of the build results are successful or partiallys succssful</returns>
-        public bool AllLastBuildsWerePartiallySuccessful(LastTwoBuildResults[] buildResults)
+        /// <returns>number of builds in partial success status</returns>
+        public int NumberOfPartiallySuccessfulBuilds(LastTwoBuildResults[] buildResults)
         {
+            int partiallySuccessfulBuildCount = 0;
             foreach (LastTwoBuildResults buildResult in buildResults)
             {
                 if (buildResult.LastBuild.Status == BuildStatus.InProgress)
@@ -294,7 +307,10 @@ namespace BuildWatcher
                         && buildResult.PreviousBuild.Status != BuildStatus.PartiallySucceeded)
                     {
                         log.Debug("Found previous build that failed" + buildResult.BuildDefinition.Name);
-                        return false;
+                    }
+                    else
+                    {
+                        partiallySuccessfulBuildCount++;
                     }
                 }
                 else if (buildResult.LastBuild != null
@@ -302,13 +318,19 @@ namespace BuildWatcher
                         && buildResult.LastBuild.Status != BuildStatus.PartiallySucceeded)
                 {
                     log.Debug("Found last build that failed " + buildResult.BuildDefinition.Name);
-                    // not in progress and last build did not succeed
-                    return false;
+                }
+                else
+                {
+                    partiallySuccessfulBuildCount++;
                 }
             }
-            log.Debug("All builds were at least partially successful");
-            // assume success
-            return true;
+
+            if (partiallySuccessfulBuildCount == buildResults.Length)
+            {
+                log.Debug("All builds were at least partially successful");
+            }
+            //// assume success
+            return partiallySuccessfulBuildCount;
         }
 
         /// <summary>
