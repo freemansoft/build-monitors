@@ -161,7 +161,7 @@
         {
             IBuildIndicatorDevice device = null;
             //// really should inject via DI here with constructor injection
-            if (ConfigurationManager.AppSettings["Device.Class"] == "Arduino.DualRGB")
+            if (ConfigurationManager.AppSettings["Device.Class"] == "ArduinoDualRGB")
             {
                 log.Debug("Using ArduinoDualRGB device");
                 device = new ArduinoDualRGB(
