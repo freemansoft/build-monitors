@@ -184,7 +184,6 @@
                     Convert.ToBoolean(ConfigurationManager.AppSettings["Arduino.ResetOnConnect"]),
                     Convert.ToInt32(ConfigurationManager.AppSettings["Arduino.NumberOfLamps"]));
             }
-
             else if (ConfigurationManager.AppSettings["Device.Class"] == "Freemometer")
             {
                 log.Debug("Using Freemometer device");
@@ -194,6 +193,13 @@
                     Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellPattern.FailurePartial"]),
                     Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellPattern.RingTime"])
                     );
+            }
+            else if (ConfigurationManager.AppSettings["Device.Class"] == "CheapLaunchpadMSP430")
+            {
+                device = new CheapLaunchpadMSP430(port,
+                    Convert.ToInt32(ConfigurationManager.AppSettings["CheapLaunchpadMSP430.BellPattern.FailureComplete"]), 
+                    Convert.ToInt32(ConfigurationManager.AppSettings["CheapLaunchpadMSP430.BellPattern.FailurePartial"])
+                    );   
             }
 
             if (device == null)
