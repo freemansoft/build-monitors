@@ -3,11 +3,11 @@
 ///
 /// commands are
 /// ?: help
-/// led red
-/// led green
+/// led red (0..9)
+/// led green (0..9)
 /// led off
-/// bell ring (msec)
-/// bell silence
+/// bell ring (0..9)
+/// bell off
 /// servo set (0..100)
 namespace BuildWatcher
 {
@@ -16,6 +16,7 @@ namespace BuildWatcher
     using System.IO.Ports;
     using System.Linq;
     using System.Text;
+    using System.Timers; // for timer
     using log4net;
 
     /// <summary>
@@ -29,13 +30,24 @@ namespace BuildWatcher
         private static ILog log = log4net.LogManager.GetLogger(typeof(ArduinoDualRGB));
 
         private SerialPort device;
-        private int bellTimeInMsec;
+        private int bellPatternFailureComplete = 0;
+        private int bellPatternFailurePartial = 0;
+        private int bellRingTime = 0;
 
-        public Freemometer(System.IO.Ports.SerialPort device, int bellTimeInMsec)
+        /// <summary>
+        /// Constructor sets the serial port and the ringer patterns to use
+        /// </summary>
+        /// <param name="device">serial port</param>
+        /// <param name="bellPatternFailureComplete">pattern to use if any builds in set completely fail</param>
+        /// <param name="bellPatternFailurePartial">pattern to use if some builds in set partially fail.</param>
+        /// <param name="bellRingTime">how many msec to let bell ring after failure detected.  Will restart every polling interval</param>
+        public Freemometer(System.IO.Ports.SerialPort device, int bellPatternFailureComplete, int bellPatternFailurePartial, int bellRingTime)
         {
             // TODO: Complete member initialization
             this.device = device;
-            this.bellTimeInMsec = bellTimeInMsec;
+            this.bellPatternFailureComplete = bellPatternFailureComplete;
+            this.bellPatternFailurePartial = bellPatternFailurePartial;
+            this.bellRingTime = bellRingTime;
         }
 
         /// <summary>
@@ -50,7 +62,7 @@ namespace BuildWatcher
         {
             if (deviceNumber > 0)
             {
-                throw new ArgumentOutOfRangeException("device number " + deviceNumber + " is out of range:" + 1);
+                throw new ArgumentOutOfRangeException("Only on monitor on this device. Device number " + deviceNumber + " is out of range:" + 1);
             }
 
             int servoPosition;
@@ -60,24 +72,60 @@ namespace BuildWatcher
             } 
             else 
             {
-                servoPosition = 100 * lastBuildsWereSuccessfulCount / buildSetSize;
+                // full range is "in the red" on the freemometer
+                servoPosition = 100- (100 * lastBuildsWereSuccessfulCount / buildSetSize);
             }
-            log.Debug("servo position set to " + servoPosition);
+            log.Debug("servo shows danger rating '100 - percentage builds successfull' ("+lastBuildsWereSuccessfulCount+"/"+buildSetSize+". Position set to " + servoPosition);
 
             this.device.Write("servo set " + servoPosition + "\r");
             if (lastBuildsWereSuccessfulCount == buildSetSize)
             {
-                this.device.Write("led green\r");
+                this.device.Write("led green 1\r");
             }
             else
             {
-                this.device.Write("led red\r");
+                this.device.Write("led red 1\r");
             }
 
-            if (buildSetSize > lastBuildsWerePartiallySuccessfulCount && this.bellTimeInMsec != 0)
+            if ((lastBuildsWerePartiallySuccessfulCount > lastBuildsWereSuccessfulCount) && this.bellPatternFailureComplete > 0)
             {
-                this.device.Write("bell ring " + this.bellTimeInMsec+"\r");
+                // number successful < number partially successful means some only partially succeeded
+                this.device.Write("bell ring " + this.bellPatternFailureComplete + "\r");
+                FireUpBellDisabler();
+            }
+            else 
+            if ((buildSetSize > lastBuildsWerePartiallySuccessfulCount) && this.bellPatternFailurePartial > 0)
+            {
+                // number built greater than partial success rate means some partially failed
+                this.device.Write("bell ring " + this.bellPatternFailurePartial + "\r");
+                FireUpBellDisabler();
+            }
+            else
+            {
+                this.device.Write("bell ring " + 0 + "\r");
             }
         }
+
+        /// <summary>
+        /// creates timed event that will turn off the bell after amount of time configured via constructor
+        /// </summary>
+        private void FireUpBellDisabler()
+        {
+            SingleShotTimerContainingSerialPort thatWhichWillturnOffBell = new SingleShotTimerContainingSerialPort(this.device,this.bellRingTime);
+            thatWhichWillturnOffBell.Elapsed += new ElapsedEventHandler(TurnOffRinger);
+            thatWhichWillturnOffBell.Enabled = true;
+        }
+
+        /// <summary>
+        /// timer call back to turn off the serial port
+        /// </summary>
+        /// <param name="serialPort">SerialPort to communicate over</param>
+        private static void TurnOffRinger(Object source,ElapsedEventArgs e)
+        {
+            SingleShotTimerContainingSerialPort actualSource = (SingleShotTimerContainingSerialPort)source;
+            actualSource.device.Write("bell ring 0\r");
+        }
+
     }
+
 }
