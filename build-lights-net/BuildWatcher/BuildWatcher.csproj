@@ -60,6 +60,7 @@
   <ItemGroup>
     <Compile Include="BuildWatchDriver.cs" />
     <Compile Include="ArduinoDualRGB.cs" />
+    <Compile Include="CheapLaunchpadMSP430.cs" />
     <Compile Include="Freemometer.cs" />
     <Compile Include="IBuildIndicatorDevice.cs" />
     <Compile Include="LastTwoBuildResults.cs" />

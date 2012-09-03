@@ -1,4 +1,5 @@
 ﻿/// Written by Joe Freeman joe@freemansoft.com
+/// beerware license
 /// Driver for the Freemometer an arduino controlled analog gauge built in an Ikea alarm clock
 ///
 /// commands are
@@ -30,23 +31,23 @@ namespace BuildWatcher
         private static ILog log = log4net.LogManager.GetLogger(typeof(ArduinoDualRGB));
 
         private SerialPort device;
-        private int bellPatternFailureComplete = 0;
-        private int bellPatternFailurePartial = 0;
+        private int signalPatternFailureComplete = 0;
+        private int signalPatternFailurePartial = 0;
         private int bellRingTime = 0;
 
         /// <summary>
         /// Constructor sets the serial port and the ringer patterns to use
         /// </summary>
         /// <param name="device">serial port</param>
-        /// <param name="bellPatternFailureComplete">pattern to use if any builds in set completely fail</param>
-        /// <param name="bellPatternFailurePartial">pattern to use if some builds in set partially fail.</param>
+        /// <param name="signalPatternFailureComplete">pattern to use if any builds in set completely fail</param>
+        /// <param name="signalPatternFailurePartial">pattern to use if some builds in set partially fail.</param>
         /// <param name="bellRingTime">how many msec to let bell ring after failure detected.  Will restart every polling interval</param>
-        public Freemometer(System.IO.Ports.SerialPort device, int bellPatternFailureComplete, int bellPatternFailurePartial, int bellRingTime)
+        public Freemometer(System.IO.Ports.SerialPort device, int signalPatternFailureComplete, int signalPatternFailurePartial, int bellRingTime)
         {
             // TODO: Complete member initialization
             this.device = device;
-            this.bellPatternFailureComplete = bellPatternFailureComplete;
-            this.bellPatternFailurePartial = bellPatternFailurePartial;
+            this.signalPatternFailureComplete = signalPatternFailureComplete;
+            this.signalPatternFailurePartial = signalPatternFailurePartial;
             this.bellRingTime = bellRingTime;
         }
 
@@ -87,17 +88,17 @@ namespace BuildWatcher
                 this.device.Write("led red 1\r");
             }
 
-            if ((lastBuildsWerePartiallySuccessfulCount > lastBuildsWereSuccessfulCount) && this.bellPatternFailureComplete > 0)
+            if ((lastBuildsWerePartiallySuccessfulCount > lastBuildsWereSuccessfulCount) && this.signalPatternFailureComplete > 0)
             {
                 // number successful < number partially successful means some only partially succeeded
-                this.device.Write("bell ring " + this.bellPatternFailureComplete + "\r");
+                this.device.Write("bell ring " + this.signalPatternFailureComplete + "\r");
                 FireUpBellDisabler();
             }
             else 
-            if ((buildSetSize > lastBuildsWerePartiallySuccessfulCount) && this.bellPatternFailurePartial > 0)
+            if ((buildSetSize > lastBuildsWerePartiallySuccessfulCount) && this.signalPatternFailurePartial > 0)
             {
                 // number built greater than partial success rate means some partially failed
-                this.device.Write("bell ring " + this.bellPatternFailurePartial + "\r");
+                this.device.Write("bell ring " + this.signalPatternFailurePartial + "\r");
                 FireUpBellDisabler();
             }
             else
