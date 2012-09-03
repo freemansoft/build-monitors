@@ -10,6 +10,7 @@
     //// a log4net dependency  caused me to have to 
     //// change the VS2010 target from .Net Framework 4 Client Profile to .Net Framework 4
     using log4net;
+    using log4net.Config;
     using Microsoft.TeamFoundation;
     using Microsoft.TeamFoundation.Build.Client;
     using Microsoft.TeamFoundation.Framework.Client; //// sometimes we lose a DB in the middle of the night
@@ -31,7 +32,10 @@
         /// <param name="args">some random arguments</param>
         public static void Main(string[] args)
         {
-            log4net.Config.BasicConfigurator.Configure();
+            //// need to make the GetLogger call as early as possible before any external assemblies have been loaded and invoked
+            //// http://logging.apache.org/log4net/release/manual/configuration.html
+            //// load from App.config
+            log4net.Config.XmlConfigurator.Configure(); 
             log = log4net.LogManager.GetLogger(typeof(BuildWatchDriver));
 
             SerialPort port = ConfigureSerialPort();
@@ -111,6 +115,12 @@
                     log.Error("Server unavailable " + e);
                     //// could do additional pause here but just assume some transient problem
                 }
+                catch (TeamFoundationServerInvalidResponseException e)
+                {
+                    //// our lame server sometimes returns this with Http code 500 "The number of HTTP requests per minute exceeded the configured limit"
+                    log.Error("Invalid Response , probably a 500: " + e);
+                    //// the problem usually is transient so lets try again
+                }
                 catch (IOException e)
                 {
                     log.Error("IO Exception - often unexpected eof " + e);
@@ -123,6 +133,11 @@
                 catch (DatabaseConnectionException e)
                 {
                     log.Error("Database gone " + e);
+                    System.Threading.Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings["ExceptionPauseInMilliseconds"]));
+                }
+                catch (System.Xml.XmlException e)
+                {
+                    log.Error("Weird parsing or incomplete XML.  Usually a something in the night thing so retry after somee sleep " + e);
                     System.Threading.Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings["ExceptionPauseInMilliseconds"]));
                 }
                 System.Threading.Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings["PollPauseInMilliseconds"]));
@@ -170,10 +185,15 @@
                     Convert.ToInt32(ConfigurationManager.AppSettings["Arduino.NumberOfLamps"]));
             }
 
-            else if (ConfigurationManager.AppSettings["Device.Class"] == "Freemometer") {
+            else if (ConfigurationManager.AppSettings["Device.Class"] == "Freemometer")
+            {
                 log.Debug("Using Freemometer device");
                 //// use the Freemometer Ikea clock hack
-                device = new Freemometer(port, Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellTime"]));
+                device = new Freemometer(port, 
+                    Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellPattern.FailureComplete"]), 
+                    Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellPattern.FailurePartial"]),
+                    Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellPattern.RingTime"])
+                    );
             }
 
             if (device == null)
