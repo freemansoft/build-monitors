@@ -32,12 +32,12 @@ namespace BuildWatcher
         /// last character of commands
         /// </summary>
         private static byte standardSuffix = (byte)';';
-        
+
         /// <summary>
         /// the command to chagne a color
         /// </summary>
         private static byte colorCommand = (byte)'c';
-        
+
         /// <summary>
         /// the command to change a blink rate
         /// </summary>
@@ -194,7 +194,7 @@ namespace BuildWatcher
         /// <param name="someoneIsBuildingCount">number of builds in progress</param>
         public void Indicate(int deviceNumber, int buildSetSize, int lastBuildsWereSuccessfulCount, int lastBuildsWerePartiallySuccessfulCount, int someoneIsBuildingCount)
         {
-            log.Debug("lamp:" + deviceNumber 
+            log.Debug("lamp:" + deviceNumber
                 + " numBuilds:" + buildSetSize
                 + " completelySuccessful:" + lastBuildsWereSuccessfulCount
                 + " partiallySuccessful:" + lastBuildsWerePartiallySuccessfulCount
@@ -229,6 +229,17 @@ namespace BuildWatcher
                 this.SetBlink(deviceNumber, 3, 0);
             }
         }
+
+        /// <summary>
+        /// Indicates some vcs problem like timeouts, errors. currently only support "problem" without types.
+        /// </summary>
+        /// <param name="deviceNumber">build number or light number, 0 based</param>
+        public void IndicateProblem(int deviceNumber)
+        {
+            this.SetColor(deviceNumber, 12, 12, 0);
+            this.SetBlink(deviceNumber, 1, 1);
+        }
+
 
         /// <summary>
         /// Converts a number ot it's hex ascii equivalent
