@@ -1,10 +1,10 @@
 ﻿namespace BuildWatcher
 {
-    
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
 
     /// <summary>
     /// standard interface for TFS build indicator devices
@@ -20,5 +20,11 @@ using System.Text;
         /// <param name="lastBuildsWerePartiallySuccessfulCount">number of partially successful builds</param>
         /// <param name="someoneIsBuildingCount">number of builds in progress</param>
         void Indicate(int deviceNumber, int buildSetSize, int lastBuildsWereSuccessfulCount, int lastBuildsWerePartiallySuccessfulCount, int someoneIsBuildingCount);
+
+        /// <summary>
+        /// Indicates some vcs problem like timeouts, errors. currently only support "problem" without types.
+        /// </summary>
+        /// <param name="deviceNumber">build number or light number, 0 based</param>
+        void IndicateProblem(int deviceNumber);
     }
 }

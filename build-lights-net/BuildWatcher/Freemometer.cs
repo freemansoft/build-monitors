@@ -10,6 +10,8 @@
 /// bell ring (0..9)
 /// bell off
 /// servo set (0..100)
+/// 
+///  is this still right with the latest firmware?
 namespace BuildWatcher
 {
     using System;
@@ -70,13 +72,13 @@ namespace BuildWatcher
             if (buildSetSize == 0)
             {
                 servoPosition = 0;
-            } 
-            else 
+            }
+            else
             {
                 // full range is "in the red" on the freemometer
-                servoPosition = 100- (100 * lastBuildsWereSuccessfulCount / buildSetSize);
+                servoPosition = 100 - (100 * lastBuildsWereSuccessfulCount / buildSetSize);
             }
-            log.Debug("servo shows danger rating '100 - percentage builds successfull' ("+lastBuildsWereSuccessfulCount+"/"+buildSetSize+". Position set to " + servoPosition);
+            log.Debug("servo shows danger rating '100 - percentage builds successfull' (" + lastBuildsWereSuccessfulCount + "/" + buildSetSize + ". Position set to " + servoPosition);
 
             this.device.Write("servo set " + servoPosition + "\r");
             if (lastBuildsWereSuccessfulCount == buildSetSize)
@@ -94,17 +96,27 @@ namespace BuildWatcher
                 this.device.Write("bell ring " + this.signalPatternFailureComplete + "\r");
                 FireUpBellDisabler();
             }
-            else 
-            if ((buildSetSize > lastBuildsWerePartiallySuccessfulCount) && this.signalPatternFailurePartial > 0)
-            {
-                // number built greater than partial success rate means some partially failed
-                this.device.Write("bell ring " + this.signalPatternFailurePartial + "\r");
-                FireUpBellDisabler();
-            }
             else
-            {
-                this.device.Write("bell ring " + 0 + "\r");
-            }
+                if ((buildSetSize > lastBuildsWerePartiallySuccessfulCount) && this.signalPatternFailurePartial > 0)
+                {
+                    // number built greater than partial success rate means some partially failed
+                    this.device.Write("bell ring " + this.signalPatternFailurePartial + "\r");
+                    FireUpBellDisabler();
+                }
+                else
+                {
+                    this.device.Write("bell ring " + 0 + "\r");
+                }
+        }
+
+        /// <summary>
+        /// Indicates some vcs problem like timeouts, errors. currently only support "problem" without types.
+        /// </summary>
+        /// <param name="deviceNumber">build number or light number, 0 based</param>
+        public void IndicateProblem(int deviceNumber)
+        {
+            this.device.Write("bell ring " + 9 + "\r");
+            this.device.Write("led red 1\r");
         }
 
         /// <summary>
@@ -112,7 +124,7 @@ namespace BuildWatcher
         /// </summary>
         private void FireUpBellDisabler()
         {
-            SingleShotTimerContainingSerialPort thatWhichWillturnOffBell = new SingleShotTimerContainingSerialPort(this.device,this.bellRingTime);
+            SingleShotTimerContainingSerialPort thatWhichWillturnOffBell = new SingleShotTimerContainingSerialPort(this.device, this.bellRingTime);
             thatWhichWillturnOffBell.Elapsed += new ElapsedEventHandler(TurnOffRinger);
             thatWhichWillturnOffBell.Enabled = true;
         }
@@ -121,7 +133,7 @@ namespace BuildWatcher
         /// timer call back to turn off the serial port
         /// </summary>
         /// <param name="serialPort">SerialPort to communicate over</param>
-        private static void TurnOffRinger(Object source,ElapsedEventArgs e)
+        private static void TurnOffRinger(Object source, ElapsedEventArgs e)
         {
             SingleShotTimerContainingSerialPort actualSource = (SingleShotTimerContainingSerialPort)source;
             actualSource.device.Write("bell ring 0\r");

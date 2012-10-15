@@ -35,7 +35,7 @@
             //// need to make the GetLogger call as early as possible before any external assemblies have been loaded and invoked
             //// http://logging.apache.org/log4net/release/manual/configuration.html
             //// load from App.config
-            log4net.Config.XmlConfigurator.Configure(); 
+            log4net.Config.XmlConfigurator.Configure();
             log = log4net.LogManager.GetLogger(typeof(BuildWatchDriver));
 
             SerialPort port = ConfigureSerialPort();
@@ -113,36 +113,58 @@
                 catch (TeamFoundationServiceUnavailableException e)
                 {
                     log.Error("Server unavailable " + e);
-                    //// could do additional pause here but just assume some transient problem
+                    IndicateProblem(allAdapters, device);
                 }
                 catch (TeamFoundationServerInvalidResponseException e)
                 {
                     //// our lame server sometimes returns this with Http code 500 "The number of HTTP requests per minute exceeded the configured limit"
                     log.Error("Invalid Response , probably a 500: " + e);
                     //// the problem usually is transient so lets try again
+                    IndicateProblem(allAdapters, device);
                 }
                 catch (IOException e)
                 {
                     log.Error("IO Exception - often unexpected eof " + e);
-                    //// could do additional pause here but just assume some transient problem
+                    IndicateProblem(allAdapters, device);
                 }
                 catch (WebException e)
                 {
                     log.Error("WebException - sometimes a timeout reading from stream if system is busy or goes down" + e);
+                    IndicateProblem(allAdapters, device);
                 }
                 catch (DatabaseConnectionException e)
                 {
                     log.Error("Database gone " + e);
-                    System.Threading.Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings["ExceptionPauseInMilliseconds"]));
+                    IndicateProblem(allAdapters, device);
+                }
+                catch (BuildServerException e)
+                {
+                    log.Error("TF246021 sometimes a SQL server error under the hood " + e);
+                    IndicateProblem(allAdapters, device);
                 }
                 catch (System.Xml.XmlException e)
                 {
                     log.Error("Weird parsing or incomplete XML.  Usually a something in the night thing so retry after somee sleep " + e);
-                    System.Threading.Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings["ExceptionPauseInMilliseconds"]));
+                    IndicateProblem(allAdapters, device);
                 }
                 System.Threading.Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings["PollPauseInMilliseconds"]));
             }
 
+        }
+
+        /// <summary>
+        /// flash all lights or signals that there is a problem
+        /// </summary>
+        /// <param name="allAdapters">list of build sets, number of lights</param>
+        /// <param name="device">actual device</param>
+        private static void IndicateProblem(List<TfsBuildAdapter> allAdapters, IBuildIndicatorDevice device)
+        {
+            int index = 0;
+            foreach (TfsBuildAdapter ourBuildWatcher in allAdapters)
+            {
+                device.IndicateProblem(index++);
+            }
+            System.Threading.Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings["ExceptionPauseInMilliseconds"]));
         }
 
         /// <summary>
@@ -188,8 +210,8 @@
             {
                 log.Debug("Using Freemometer device");
                 //// use the Freemometer Ikea clock hack
-                device = new Freemometer(port, 
-                    Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellPattern.FailureComplete"]), 
+                device = new Freemometer(port,
+                    Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellPattern.FailureComplete"]),
                     Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellPattern.FailurePartial"]),
                     Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellPattern.RingTime"])
                     );
@@ -197,9 +219,9 @@
             else if (ConfigurationManager.AppSettings["Device.Class"] == "CheapLaunchpadMSP430")
             {
                 device = new CheapLaunchpadMSP430(port,
-                    Convert.ToInt32(ConfigurationManager.AppSettings["CheapLaunchpadMSP430.BellPattern.FailureComplete"]), 
+                    Convert.ToInt32(ConfigurationManager.AppSettings["CheapLaunchpadMSP430.BellPattern.FailureComplete"]),
                     Convert.ToInt32(ConfigurationManager.AppSettings["CheapLaunchpadMSP430.BellPattern.FailurePartial"])
-                    );   
+                    );
             }
 
             if (device == null)

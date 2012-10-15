@@ -62,6 +62,7 @@
     <Compile Include="ArduinoDualRGB.cs" />
     <Compile Include="CheapLaunchpadMSP430.cs" />
     <Compile Include="Freemometer.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="IBuildIndicatorDevice.cs" />
     <Compile Include="LastTwoBuildResults.cs" />
     <Compile Include="TfsBuildAdapter.cs" />

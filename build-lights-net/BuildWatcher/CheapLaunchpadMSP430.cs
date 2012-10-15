@@ -43,14 +43,26 @@ namespace BuildWatcher
             {
                 this.device.Write("rgb 0 250 0 1\r");
             }
-            else if (lastBuildsWerePartiallySuccessfulCount == buildSetSize){
-                this.device.Write("rgb 250 0 0 "+signalPatternFailurePartial+"\r");
+            else if (lastBuildsWerePartiallySuccessfulCount == buildSetSize)
+            {
+                this.device.Write("rgb 250 0 0 " + signalPatternFailurePartial + "\r");
             }
             else
             {
                 // sometimes we use a pink here
-                this.device.Write("rgb 200 100 0 "+signalPatternFailurePartial+"\r");
+                this.device.Write("rgb 200 100 0 " + signalPatternFailurePartial + "\r");
             }
         }
+
+        /// <summary>
+        /// Indicates some vcs problem like timeouts, errors. currently only support "problem" without types.
+        /// </summary>
+        /// <param name="deviceNumber">build number or light number, 0 based</param>
+        public void IndicateProblem(int deviceNumber)
+        {
+            this.device.Write("rgb 128 128 0 " + "9" + "\r");
+        }
+
+
     }
 }
