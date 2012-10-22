@@ -10,7 +10,8 @@
     using Microsoft.TeamFoundation.VersionControl.Client;
 
     /// <summary>
-    ///  in a separate class so we can share across monitors
+    /// An active TFS connection used by the BuildAdapter retrieve build information.
+    /// Located in a separate class so we can share across monitors
     /// </summary>
     public class TfsBuildConnection
     {

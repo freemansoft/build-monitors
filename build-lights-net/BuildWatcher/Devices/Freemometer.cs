@@ -12,7 +12,7 @@
 /// servo set (0..100)
 /// 
 ///  is this still right with the latest firmware?
-namespace BuildWatcher
+namespace BuildWatcher.Devices
 {
     using System;
     using System.Collections.Generic;
@@ -25,12 +25,13 @@ namespace BuildWatcher
     /// <summary>
     /// The cover class for the ikea dekad clock indicator hack
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1812:AvoidUninstantiatedInternalClasses")]
     class Freemometer : IBuildIndicatorDevice
     {
         /// <summary>
         /// log4net logger
         /// </summary>
-        private static ILog log = log4net.LogManager.GetLogger(typeof(ArduinoDualRGB));
+        private static ILog log = log4net.LogManager.GetLogger(typeof(Freemometer));
 
         private SerialPort device;
         private int signalPatternFailureComplete = 0;
@@ -46,15 +47,21 @@ namespace BuildWatcher
         /// <param name="bellRingTime">how many msec to let bell ring after failure detected.  Will restart every polling interval</param>
         public Freemometer(System.IO.Ports.SerialPort device, int signalPatternFailureComplete, int signalPatternFailurePartial, int bellRingTime)
         {
+            if (device == null)
+            {
+                throw new ArgumentNullException("device", "Serial Port Device is required");
+            }
             // TODO: Complete member initialization
             this.device = device;
             this.signalPatternFailureComplete = signalPatternFailureComplete;
             this.signalPatternFailurePartial = signalPatternFailurePartial;
             this.bellRingTime = bellRingTime;
+            log.Info("Created Freemometer on port " + device.PortName);
         }
 
         /// <summary>
         ///  sets the indicator in device dependent fashion
+        ///  Ignores any deviceNumber beyond 0
         /// </summary>
         /// <param name="deviceNumber">build number or light number, 0 based</param>
         /// <param name="buildSetSize">number of builds in set</param>
@@ -65,7 +72,7 @@ namespace BuildWatcher
         {
             if (deviceNumber > 0)
             {
-                throw new ArgumentOutOfRangeException("Only on monitor on this device. Device number " + deviceNumber + " is out of range:" + 1);
+                return;
             }
 
             int servoPosition;
@@ -110,11 +117,16 @@ namespace BuildWatcher
         }
 
         /// <summary>
-        /// Indicates some vcs problem like timeouts, errors. currently only support "problem" without types.
+        ///  Indicates some vcs problem like timeouts, errors. currently only support "problem" without types.
+        ///  Ignores any deviceNumber beyond 0
         /// </summary>
         /// <param name="deviceNumber">build number or light number, 0 based</param>
         public void IndicateProblem(int deviceNumber)
         {
+            if (deviceNumber > 0)
+            {
+                return;
+            }
             this.device.Write("bell ring " + 9 + "\r");
             this.device.Write("led red 1\r");
         }
@@ -122,6 +134,7 @@ namespace BuildWatcher
         /// <summary>
         /// creates timed event that will turn off the bell after amount of time configured via constructor
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification="should get cleaned up after event fired")]
         private void FireUpBellDisabler()
         {
             SingleShotTimerContainingSerialPort thatWhichWillturnOffBell = new SingleShotTimerContainingSerialPort(this.device, this.bellRingTime);

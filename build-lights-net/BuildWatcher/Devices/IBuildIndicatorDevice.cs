@@ -1,4 +1,4 @@
-﻿namespace BuildWatcher
+﻿namespace BuildWatcher.Devices
 {
 
     using System;
@@ -9,10 +9,11 @@
     /// <summary>
     /// standard interface for TFS build indicator devices
     /// </summary>
-    interface IBuildIndicatorDevice
+    public interface IBuildIndicatorDevice
     {
         /// <summary>
-        ///  sets the indicator in device dependent fashion
+        ///  Sets the indicator in device dependent fashion.
+        ///  Devices should ignore commands for any deviceNumber beyond what they support
         /// </summary>
         /// <param name="deviceNumber">build number or light number, 0 based</param>
         /// <param name="buildSetSize">number of builds in set</param>
@@ -22,7 +23,8 @@
         void Indicate(int deviceNumber, int buildSetSize, int lastBuildsWereSuccessfulCount, int lastBuildsWerePartiallySuccessfulCount, int someoneIsBuildingCount);
 
         /// <summary>
-        /// Indicates some vcs problem like timeouts, errors. currently only support "problem" without types.
+        ///  Indicates some vcs problem like timeouts, errors. currently only support "problem" without types.
+        ///  Devices should ignore commands for any deviceNumber beyond what they support
         /// </summary>
         /// <param name="deviceNumber">build number or light number, 0 based</param>
         void IndicateProblem(int deviceNumber);
