@@ -6,7 +6,7 @@
 /// where red, green and blue have values 0-15 representing brightness
 /// blink: ~b#[red on][green on][blue on][red off][green off][blue off];
 /// where on and off have values 0-15 representing the number of half seconds.
-namespace BuildWatcher
+namespace BuildWatcher.Devices
 {
     using System;
     using System.IO.Ports;
@@ -16,6 +16,7 @@ namespace BuildWatcher
     /// <summary>
     /// Arduino driver class
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "Arduino"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "RGB")]
     public class ArduinoDualRGB : IBuildIndicatorDevice
     {
         /// <summary>
@@ -59,16 +60,14 @@ namespace BuildWatcher
         /// <param name="device">Serial port the device is connected two.  Can be virtual com port for bluetooth</param>
         /// <param name="canReset">determines if the device can be reset through DTR or if is actually reset on connect</param>
         /// <param name="numLamps">the number of lamps in the device, used when turning off all the lights</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "num")]
         public ArduinoDualRGB(SerialPort device, bool canReset, int numLamps)
         {
             if (device == null)
             {
-                throw new ArgumentNullException("device", "Device is required");
+                throw new ArgumentNullException("device","Serial Port Device is required");
             }
-            else
-            {
-                this.device = device;
-            }
+            this.device = device;
 
             if (canReset)
             {
@@ -97,15 +96,17 @@ namespace BuildWatcher
 
             this.numLamps = numLamps;
             this.TurnOffLights(numLamps);
+            log.Info("created Arduino Device on port "+device.PortName+" with "+numLamps+" lamps");
         }
 
         /// <summary>
         /// Turns off the number of lamps specified
         /// </summary>
-        /// <param name="numLamps">number of lamps to clear</param> 
-        public void TurnOffLights(int numLamps)
+        /// <param name="numLampsToTurnOff">number of lamps to clear</param> 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "num"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1702:CompoundWordsShouldBeCasedCorrectly", MessageId = "TurnOff")]
+        public void TurnOffLights(int numLampsToTurnOff)
         {
-            for (int deviceNumber = 0; deviceNumber < numLamps; deviceNumber++)
+            for (int deviceNumber = 0; deviceNumber < numLampsToTurnOff; deviceNumber++)
             {
                 this.SetColor(deviceNumber, 0, 0, 0);
                 this.SetBlink(deviceNumber, 2, 0);
@@ -185,7 +186,8 @@ namespace BuildWatcher
         }
 
         /// <summary>
-        ///  sets the indicator in device dependent fashion
+        ///  sets the indicator in device dependent fashion.
+        ///  Ignores any deviceNumber beyond configured numLamps
         /// </summary>
         /// <param name="deviceNumber">build number or light number, 0 based</param>
         /// <param name="buildSetSize">number of builds in set</param>
@@ -201,7 +203,7 @@ namespace BuildWatcher
                 + " currentlyBuilding:" + someoneIsBuildingCount);
             if (deviceNumber >= this.numLamps)
             {
-                throw new ArgumentOutOfRangeException("device number " + deviceNumber + " is out of range:" + this.numLamps);
+                return;
             }
 
             if (lastBuildsWereSuccessfulCount == buildSetSize)
@@ -231,11 +233,16 @@ namespace BuildWatcher
         }
 
         /// <summary>
-        /// Indicates some vcs problem like timeouts, errors. currently only support "problem" without types.
+        ///  Indicates some vcs problem like timeouts, errors. currently only support "problem" without types.
+        ///  Ignores any deviceNumber beyond configured numLamps
         /// </summary>
         /// <param name="deviceNumber">build number or light number, 0 based</param>
         public void IndicateProblem(int deviceNumber)
         {
+            if (deviceNumber >= this.numLamps)
+            {
+                return;
+            }
             this.SetColor(deviceNumber, 12, 12, 0);
             this.SetBlink(deviceNumber, 1, 1);
         }

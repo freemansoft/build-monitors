@@ -13,7 +13,7 @@ namespace BuildWatcher
     using Microsoft.TeamFoundation.VersionControl.Client;
 
     /// <summary>
-    /// Contains all of the functionaly required to talk with TFS
+    /// Contains all of the functionaly required to talk with TFS for a given set of builds
     /// </summary>
     public class TfsBuildAdapter
     {
@@ -39,14 +39,10 @@ namespace BuildWatcher
             {
                 throw new ArgumentException("Connection must be configured");
             }
-
-            if (definitionNamePattern != null)
+            //// no-pattern means look at all build definitions
+            if (definitionNamePattern != null && definitionNamePattern.Length > 0)
             {
                 this.DefinitionNamePattern = definitionNamePattern;
-            }
-            else
-            {
-                throw new ArgumentException("DefinitionNamePattern must be set");
             }
 
             //// this should be in it's own method
@@ -59,6 +55,7 @@ namespace BuildWatcher
             {
                 throw new ArgumentException("TeamProjectName must be set");
             }
+            log.Info("Created new build adapter for project " + teamProjectName + " and pattern " + definitionNamePattern);
         }
 
         /// <summary>
@@ -89,7 +86,7 @@ namespace BuildWatcher
         }
 
         /// <summary>
-        /// gets all build definitiosn fo rthe configure dpojrect
+        /// gets all build definitions for the configured project
         /// </summary>
         /// <returns>definitions that match</returns>
         public IBuildDefinition[] GetBuildDefinitions()
@@ -146,6 +143,10 @@ namespace BuildWatcher
             {
                 buildDetailsQuerySpec = this.Connection.BuildServer.CreateBuildDetailSpec(teamProject.Name);
             }
+            //// Failure to set this property results in ALL of the build information being retrieved resulting in 10X+ call times
+            //// You can retrieve subsets with something like
+            //// buildDetailsQuerySpec.InformationTypes = new string[] { "ActivityTracking", "AgentScopeActivityTracking" };
+            buildDetailsQuerySpec.InformationTypes = null;
             //// last and previous
             buildDetailsQuerySpec.MaxBuildsPerDefinition = 2;
             //// use start time descending because InProgress builds don't seem to sort correctly when using EndTimeDescending
@@ -232,7 +233,7 @@ namespace BuildWatcher
         /// used to tell user if any builds in this set are in progress
         /// </summary>
         /// <param name="buildResults">buld results to be analyzed</param>
-        /// <returns>true if any build in the result set is In Progress</returns>
+        /// <returns>number of builds In Progress</returns>
         public int SomeoneIsBuilding(LastTwoBuildResults[] buildResults)
         {
             int buildCount = 0;
@@ -253,6 +254,7 @@ namespace BuildWatcher
         /// </summary>
         /// <param name="buildResults">build results to be analyzed</param>
         /// <returns>number of builds in completely succesful status</returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1822:MarkMembersAsStatic")]
         public int NumberOfSuccessfulBuilds(LastTwoBuildResults[] buildResults)
         {
             int successfulBuildCount = 0;
@@ -294,6 +296,7 @@ namespace BuildWatcher
         /// </summary>
         /// <param name="buildResults">a set of build results</param>
         /// <returns>number of builds in partial success status</returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1822:MarkMembersAsStatic")]
         public int NumberOfPartiallySuccessfulBuilds(LastTwoBuildResults[] buildResults)
         {
             int partiallySuccessfulBuildCount = 0;

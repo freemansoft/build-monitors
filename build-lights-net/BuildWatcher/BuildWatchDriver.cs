@@ -15,11 +15,14 @@
     using Microsoft.TeamFoundation.Build.Client;
     using Microsoft.TeamFoundation.Framework.Client; //// sometimes we lose a DB in the middle of the night
     using Microsoft.TeamFoundation.VersionControl.Client;
+    using BuildWatcher.Devices;
+    using Spring.Context;
+    using Spring.Context.Support;
 
     /// <summary>
     /// The main run loop for the build watcher
     /// </summary>
-    public static class BuildWatchDriver
+    public class BuildWatchDriver
     {
         /// <summary>
         /// log4net logger
@@ -27,56 +30,62 @@
         private static ILog log = null;
 
         /// <summary>
+        /// spring wired list of build adapters, build sets to be monitored
+        /// </summary>
+        private List<TfsBuildAdapter> allAdapters;
+        /// <summary>
+        /// spring wired device that displays the build status
+        /// </summary>
+        private IBuildIndicatorDevice device;
+        /// <summary>
+        /// delay between loops
+        /// </summary>
+        private int pollPauseInMilliseconds;
+        /// <summary>
+        /// delay after receiving any exception, give server time to recover
+        /// </summary>
+        private int exceptionPauseInMilliseconds;
+
+        /// <summary>
         /// main program that instantiates the watcher and runs it
         /// </summary>
-        /// <param name="args">some random arguments</param>
-        public static void Main(string[] args)
+        public static void Main()
         {
             //// need to make the GetLogger call as early as possible before any external assemblies have been loaded and invoked
             //// http://logging.apache.org/log4net/release/manual/configuration.html
             //// load from App.config
             log4net.Config.XmlConfigurator.Configure();
             log = log4net.LogManager.GetLogger(typeof(BuildWatchDriver));
-
-            SerialPort port = ConfigureSerialPort();
-            IBuildIndicatorDevice device = ConfigureDevice(port);
-
-            TfsBuildConnection ourBuildConnection = new TfsBuildConnection(
-                ConfigurationManager.AppSettings["Tfs.Url"],
-                ConfigurationManager.AppSettings["Tfs.Username"],
-                ConfigurationManager.AppSettings["Tfs.Password"],
-                ConfigurationManager.AppSettings["Tfs.Domain"]
-              );
-
-            List<TfsBuildAdapter> allAdapters = new List<TfsBuildAdapter>();
-
-            //// we don't verify the length of the list vs the hardware's actual number of lights
-            int index = 1;
-            while (ConfigurationManager.AppSettings["Tfs.TeamProjectName" + index] != null)
+            //// configure spring http://www.springframework.net
+            IApplicationContext ctx = ContextRegistry.GetContext();
+            try
             {
-                log.Debug("Assembling Build adapter " + index + " for " + ConfigurationManager.AppSettings["Tfs.BuildDefinitionNamePattern" + index]);
-                TfsBuildAdapter ourBuildWatcher = new TfsBuildAdapter(
-                    ourBuildConnection,
-                    ConfigurationManager.AppSettings["Tfs.TeamProjectName" + index],
-                    ConfigurationManager.AppSettings["Tfs.BuildDefinitionNamePattern" + index]
-                    );
-                allAdapters.Add(ourBuildWatcher);
-                index++;
+                //// the only thing I don't like about the spring config is that connection initialization errors are buried
+                //// so we break out this bean retreival separately so we can identify TFS connection problems
+                ctx.GetObject("myBuildServerConnection");
+            } catch (Spring.Objects.Factory.ObjectCreationException e) {
+                log.Error("Unable to connect to the TFS server.  Check configuration in App.config and that your server is up", e);
+                return;
             }
+            //// get our driver from spring and run the Monitor loop
+            BuildWatchDriver myDriverInstance =
+                ctx.GetObject("myDriverInstance") as BuildWatchDriver;
+            myDriverInstance.MonitorStatus();
+        }
 
-            //// this never returns so comment this out if you just want to see status of server on console
-            //// comment out this block if you don't have an arduino
-            MonitorStatus(allAdapters, device);
-            port.Dispose();
-            //// end comment out
-
-            //// reenable this block if you want to test without any Extreme Feedback Device (lights)
-            //// some gratuitous demonstration code that shows how we get all this stuff
-            //// ignore the configured project name and build definition pattern and search everything
-            ////BuildWatcher.QueryWholeTree(ourBuildWatcher);
-            //// here we use the configuration in the build watcher
-            ////BuildWatcher.QueryViaConfiguration(ourBuildWatcher);
-            //// end reenable blocks
+        /// <summary>
+        /// Instantiantes an instanceof the driver with it's configuration parameters
+        /// </summary>
+        /// <param name="allAdapters"></param>
+        /// <param name="device"></param>
+        public BuildWatchDriver(List<TfsBuildAdapter> allAdapters, IBuildIndicatorDevice device,
+            int pollPauseInMilliseconds,
+            int exceptionPauseInMilliseconds)
+        {
+            this.allAdapters = allAdapters;
+            this.device = device;
+            this.pollPauseInMilliseconds = pollPauseInMilliseconds;
+            this.exceptionPauseInMilliseconds = exceptionPauseInMilliseconds;
         }
 
         /// <summary>
@@ -85,7 +94,7 @@
         /// </summary>
         /// <param name="allAdapters">a list of build specifications</param>
         /// <param name="device">our potentially multi-indicator device</param>
-        private static void MonitorStatus(List<TfsBuildAdapter> allAdapters, IBuildIndicatorDevice device)
+        private  void MonitorStatus()
         {
             while (true)
             {
@@ -104,7 +113,10 @@
                             int someoneIsBuildingCount = ourBuildWatcher.SomeoneIsBuilding(buildResults);
                             int lastBuildsWereSuccessfulCount = ourBuildWatcher.NumberOfSuccessfulBuilds(buildResults);
                             int lastBuildsWerePartiallySuccessfulCount = ourBuildWatcher.NumberOfPartiallySuccessfulBuilds(buildResults);
-                            device.Indicate(index, buildResults.Length, lastBuildsWereSuccessfulCount, lastBuildsWerePartiallySuccessfulCount, someoneIsBuildingCount);
+                            if (device != null)
+                            {
+                                device.Indicate(index, buildResults.Length, lastBuildsWereSuccessfulCount, lastBuildsWerePartiallySuccessfulCount, someoneIsBuildingCount);
+                            }
                         }
                         index++;
                     }
@@ -113,41 +125,41 @@
                 catch (TeamFoundationServiceUnavailableException e)
                 {
                     log.Error("Server unavailable " + e);
-                    IndicateProblem(allAdapters, device);
+                    this.IndicateProblem();
                 }
                 catch (TeamFoundationServerInvalidResponseException e)
                 {
                     //// our lame server sometimes returns this with Http code 500 "The number of HTTP requests per minute exceeded the configured limit"
                     log.Error("Invalid Response , probably a 500: " + e);
                     //// the problem usually is transient so lets try again
-                    IndicateProblem(allAdapters, device);
+                    this.IndicateProblem();
                 }
                 catch (IOException e)
                 {
                     log.Error("IO Exception - often unexpected eof " + e);
-                    IndicateProblem(allAdapters, device);
+                    this.IndicateProblem();
                 }
                 catch (WebException e)
                 {
                     log.Error("WebException - sometimes a timeout reading from stream if system is busy or goes down" + e);
-                    IndicateProblem(allAdapters, device);
+                    this.IndicateProblem();
                 }
                 catch (DatabaseConnectionException e)
                 {
                     log.Error("Database gone " + e);
-                    IndicateProblem(allAdapters, device);
+                    this.IndicateProblem();
                 }
                 catch (BuildServerException e)
                 {
                     log.Error("TF246021 sometimes a SQL server error under the hood " + e);
-                    IndicateProblem(allAdapters, device);
+                    this.IndicateProblem();
                 }
                 catch (System.Xml.XmlException e)
                 {
                     log.Error("Weird parsing or incomplete XML.  Usually a something in the night thing so retry after somee sleep " + e);
-                    IndicateProblem(allAdapters, device);
+                    this.IndicateProblem();
                 }
-                System.Threading.Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings["PollPauseInMilliseconds"]));
+                System.Threading.Thread.Sleep(pollPauseInMilliseconds);
             }
 
         }
@@ -157,79 +169,16 @@
         /// </summary>
         /// <param name="allAdapters">list of build sets, number of lights</param>
         /// <param name="device">actual device</param>
-        private static void IndicateProblem(List<TfsBuildAdapter> allAdapters, IBuildIndicatorDevice device)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1804:RemoveUnusedLocals", MessageId = "ourBuildWatcher")]
+        private void IndicateProblem()
         {
             int index = 0;
             foreach (TfsBuildAdapter ourBuildWatcher in allAdapters)
             {
                 device.IndicateProblem(index++);
             }
-            System.Threading.Thread.Sleep(Convert.ToInt32(ConfigurationManager.AppSettings["ExceptionPauseInMilliseconds"]));
+            System.Threading.Thread.Sleep(exceptionPauseInMilliseconds);
         }
 
-        /// <summary>
-        /// configurs a serial port base on the Cofniguratin manager settings
-        /// </summary>
-        /// <returns>a configured serial port</returns>
-        private static SerialPort ConfigureSerialPort()
-        {
-            SerialPort port = new SerialPort();
-            port.PortName = ConfigurationManager.AppSettings["Device.Serial.ComPort"];
-            port.BaudRate = Convert.ToInt32(ConfigurationManager.AppSettings["Device.Serial.DataRate"]);
-            port.Handshake = Handshake.None;
-            port.ReadTimeout = 500;
-            port.WriteTimeout = 500;
-            port.Encoding = Encoding.ASCII;
-            port.Open();
-            if (!port.IsOpen)
-            {
-                throw new ApplicationException("Unable to talk with device");
-            }
-
-            return port;
-        }
-
-        /// <summary>
-        /// Configure a device attached to the passed in port. This will attempt to connecto an arduino device
-        /// </summary>
-        /// <param name="port">Serial device that the indicator will use</param>
-        /// <returns>a serial device</returns>
-        private static IBuildIndicatorDevice ConfigureDevice(SerialPort port)
-        {
-            IBuildIndicatorDevice device = null;
-            //// really should inject via DI here with constructor injection
-            if (ConfigurationManager.AppSettings["Device.Class"] == "ArduinoDualRGB")
-            {
-                log.Debug("Using ArduinoDualRGB device");
-                device = new ArduinoDualRGB(
-                    port,
-                    Convert.ToBoolean(ConfigurationManager.AppSettings["Arduino.ResetOnConnect"]),
-                    Convert.ToInt32(ConfigurationManager.AppSettings["Arduino.NumberOfLamps"]));
-            }
-            else if (ConfigurationManager.AppSettings["Device.Class"] == "Freemometer")
-            {
-                log.Debug("Using Freemometer device");
-                //// use the Freemometer Ikea clock hack
-                device = new Freemometer(port,
-                    Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellPattern.FailureComplete"]),
-                    Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellPattern.FailurePartial"]),
-                    Convert.ToInt32(ConfigurationManager.AppSettings["Freemometer.BellPattern.RingTime"])
-                    );
-            }
-            else if (ConfigurationManager.AppSettings["Device.Class"] == "CheapLaunchpadMSP430")
-            {
-                device = new CheapLaunchpadMSP430(port,
-                    Convert.ToInt32(ConfigurationManager.AppSettings["CheapLaunchpadMSP430.BellPattern.FailureComplete"]),
-                    Convert.ToInt32(ConfigurationManager.AppSettings["CheapLaunchpadMSP430.BellPattern.FailurePartial"])
-                    );
-            }
-
-            if (device == null)
-            {
-                throw new ConfigurationErrorsException("No Device Configured");
-            }
-
-            return device;
-        }
     }
 }
