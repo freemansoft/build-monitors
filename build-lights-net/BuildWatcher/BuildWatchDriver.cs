@@ -18,6 +18,8 @@
     using BuildWatcher.Devices;
     using Spring.Context;
     using Spring.Context.Support;
+    using BuildWatcher.Tfs;
+    using BuildWatcher.Http;
 
     /// <summary>
     /// The main run loop for the build watcher
@@ -37,6 +39,11 @@
         /// spring wired device that displays the build status
         /// </summary>
         private IBuildIndicatorDevice device;
+        /// <summary>
+        /// HTTP Listener wrapper for web page
+        /// </summary>
+        private HttpListenerWrapper httpListenerWrapper;
+
         /// <summary>
         /// delay between loops
         /// </summary>
@@ -58,6 +65,7 @@
             log = log4net.LogManager.GetLogger(typeof(BuildWatchDriver));
             //// configure spring http://www.springframework.net
             IApplicationContext ctx = ContextRegistry.GetContext();
+
             try
             {
                 //// the only thing I don't like about the spring config is that connection initialization errors are buried
@@ -80,12 +88,14 @@
         /// <param name="device"></param>
         public BuildWatchDriver(List<TfsBuildAdapter> allAdapters, IBuildIndicatorDevice device,
             int pollPauseInMilliseconds,
-            int exceptionPauseInMilliseconds)
+            int exceptionPauseInMilliseconds,
+            HttpListenerWrapper httpListenerWrapper)
         {
             this.allAdapters = allAdapters;
             this.device = device;
             this.pollPauseInMilliseconds = pollPauseInMilliseconds;
             this.exceptionPauseInMilliseconds = exceptionPauseInMilliseconds;
+            this.httpListenerWrapper = httpListenerWrapper;
         }
 
         /// <summary>
@@ -96,6 +106,8 @@
         /// <param name="device">our potentially multi-indicator device</param>
         private  void MonitorStatus()
         {
+            // this may fail silently if the URL isn't right or doesn't have permissions to open port
+            this.httpListenerWrapper.Start();
             while (true)
             {
                 int index = 0;
@@ -107,7 +119,7 @@
                     {
                         //// if they shared a connection we might only have to connect on the first one in the list
                         //// how often do we really need to get new build definitions?
-                        LastTwoBuildResults[] buildResults = ourBuildWatcher.GetLastTwoBuilds();
+                        TfsLastTwoBuildResults[] buildResults = ourBuildWatcher.GetLastTwoBuilds();
                         if (buildResults.Length > 0)
                         {
                             int someoneIsBuildingCount = ourBuildWatcher.SomeoneIsBuilding(buildResults);
@@ -116,6 +128,10 @@
                             if (device != null)
                             {
                                 device.Indicate(index, buildResults.Length, lastBuildsWereSuccessfulCount, lastBuildsWerePartiallySuccessfulCount, someoneIsBuildingCount);
+                            }
+                            if (this.httpListenerWrapper != null)
+                            {
+                                this.httpListenerWrapper.AddData(ourBuildWatcher.DefinitionNamePattern, buildResults);
                             }
                         }
                         index++;

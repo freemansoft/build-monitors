@@ -66,7 +66,7 @@ namespace BuildWatcher.Devices
             {
                 this.device.Write("rgb 0 250 0 1\r");
             }
-            else if (lastBuildsWerePartiallySuccessfulCount == buildSetSize)
+            else if (lastBuildsWerePartiallySuccessfulCount > 0)
             {
                 // sometimes we use a pink here
                 this.device.Write("rgb 200 100 0 " + signalPatternFailurePartial + "\r");

@@ -1,7 +1,7 @@
 ﻿///
 /// BuildWatcher.cs created by Joe Freeman joe@freemansoft.com
 /// 
-namespace BuildWatcher
+namespace BuildWatcher.Tfs
 {
     using System;
     using System.Collections.Generic;
@@ -120,7 +120,7 @@ namespace BuildWatcher
         /// Retrieves the last two builds for all of the builds in our that match our definition name
         /// </summary>
         /// <returns>build results</returns>
-        public LastTwoBuildResults[] GetLastTwoBuilds()
+        public TfsLastTwoBuildResults[] GetLastTwoBuilds()
         {
             return this.GetLastTwoBuilds(this.OurTeamProject, this.DefinitionNamePattern);
         }
@@ -131,7 +131,7 @@ namespace BuildWatcher
         /// <param name="teamProject">the team project to uery against</param>
         /// <param name="buildDefinitionPattern">optional build definition pattern</param>
         /// <returns>build result pairs</returns>
-        public LastTwoBuildResults[] GetLastTwoBuilds(TeamProject teamProject, string buildDefinitionPattern)
+        public TfsLastTwoBuildResults[] GetLastTwoBuilds(TeamProject teamProject, string buildDefinitionPattern)
         {
             log.Debug("Finding build results for definition pattern " + buildDefinitionPattern);
             IBuildDetailSpec buildDetailsQuerySpec;
@@ -153,20 +153,20 @@ namespace BuildWatcher
             buildDetailsQuerySpec.QueryOrder = BuildQueryOrder.StartTimeDescending;
             IBuildQueryResult buildResults = this.Connection.BuildServer.QueryBuilds(buildDetailsQuerySpec);
 
-            IDictionary<string, LastTwoBuildResults> results = new SortedDictionary<string, LastTwoBuildResults>();
+            IDictionary<string, TfsLastTwoBuildResults> results = new SortedDictionary<string, TfsLastTwoBuildResults>();
             //// create placeholder result objects, one for each build, that we will fill with results
             foreach (IBuildDetail oneDetail in buildResults.Builds)
             {
                 if (!results.ContainsKey(oneDetail.BuildDefinition.Name))
                 {
-                    results.Add(oneDetail.BuildDefinition.Name, new LastTwoBuildResults(oneDetail.BuildDefinition, null, null));
+                    results.Add(oneDetail.BuildDefinition.Name, new TfsLastTwoBuildResults(oneDetail.BuildDefinition, null, null));
                 }
             }
             //// now fill the results.  
             //// The builds are in reverse start time order so the last build shold always be first putting it in the last build slot
             foreach (IBuildDetail oneDetail in buildResults.Builds)
             {
-                LastTwoBuildResults corresponding = results[oneDetail.BuildDefinition.Name];
+                TfsLastTwoBuildResults corresponding = results[oneDetail.BuildDefinition.Name];
                 //// sorted by start time descending so latest should always come first
                 if (corresponding.LastBuild == null)
                 {
@@ -182,7 +182,7 @@ namespace BuildWatcher
             {
                 foreach (string key in results.Keys)
                 {
-                    LastTwoBuildResults oneResult = results[key];
+                    TfsLastTwoBuildResults oneResult = results[key];
                     log.Debug(" " + oneResult.BuildDefinition.Name);
                     log.Debug("  " + oneResult.LastBuild.BuildNumber + " " + oneResult.LastBuild.Status);
                     if (oneResult.PreviousBuild != null)
@@ -192,7 +192,7 @@ namespace BuildWatcher
                 }
             }
             //// convert the dictionary to an array
-            LastTwoBuildResults[] resultsAsArray = new LastTwoBuildResults[results.Values.Count];
+            TfsLastTwoBuildResults[] resultsAsArray = new TfsLastTwoBuildResults[results.Values.Count];
             results.Values.CopyTo(resultsAsArray, 0);
             return resultsAsArray;
         }
@@ -234,10 +234,10 @@ namespace BuildWatcher
         /// </summary>
         /// <param name="buildResults">buld results to be analyzed</param>
         /// <returns>number of builds In Progress</returns>
-        public int SomeoneIsBuilding(LastTwoBuildResults[] buildResults)
+        public int SomeoneIsBuilding(TfsLastTwoBuildResults[] buildResults)
         {
             int buildCount = 0;
-            foreach (LastTwoBuildResults buildResult in buildResults)
+            foreach (TfsLastTwoBuildResults buildResult in buildResults)
             {
                 if (buildResult.LastBuild.Status == BuildStatus.InProgress)
                 {
@@ -255,31 +255,34 @@ namespace BuildWatcher
         /// <param name="buildResults">build results to be analyzed</param>
         /// <returns>number of builds in completely succesful status</returns>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1822:MarkMembersAsStatic")]
-        public int NumberOfSuccessfulBuilds(LastTwoBuildResults[] buildResults)
+        public int NumberOfSuccessfulBuilds(TfsLastTwoBuildResults[] buildResults)
         {
             int successfulBuildCount = 0;
-            foreach (LastTwoBuildResults buildResult in buildResults)
+            foreach (TfsLastTwoBuildResults buildResult in buildResults)
             {
                 if (buildResult.LastBuild.Status == BuildStatus.InProgress)
                 {
                     // treat as not successful if in progress and was no previous build
                     if (buildResult.PreviousBuild != null && buildResult.PreviousBuild.Status != BuildStatus.Succeeded)
                     {
-                        log.Debug("Found previous build that partially failed " + buildResult.BuildDefinition.Name + " - " + buildResult.PreviousBuild.Status);
+                        log.Debug("Found previous build that was not fully successful " + buildResult.BuildDefinition.Name + " - " + buildResult.PreviousBuild.Status);
                     }
                     else
                     {
                         successfulBuildCount++;
                     }
                 }
-                else if (buildResult.LastBuild != null && buildResult.LastBuild.Status != BuildStatus.Succeeded)
-                {
-                    //// not in progress and last build did not succeed
-                    log.Debug("Found last build that partially failed " + buildResult.BuildDefinition.Name + " - " + buildResult.LastBuild.Status);
-                }
                 else
                 {
-                    successfulBuildCount++;
+                    if (buildResult.LastBuild != null && buildResult.LastBuild.Status != BuildStatus.Succeeded)
+                    {
+                        //// not in progress and last build did not succeed
+                        log.Debug("Found last build that was not fully successful " + buildResult.BuildDefinition.Name + " - " + buildResult.LastBuild.Status);
+                    }
+                    else
+                    {
+                        successfulBuildCount++;
+                    }
                 }
             }
 
@@ -297,42 +300,33 @@ namespace BuildWatcher
         /// <param name="buildResults">a set of build results</param>
         /// <returns>number of builds in partial success status</returns>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1822:MarkMembersAsStatic")]
-        public int NumberOfPartiallySuccessfulBuilds(LastTwoBuildResults[] buildResults)
+        public int NumberOfPartiallySuccessfulBuilds(TfsLastTwoBuildResults[] buildResults)
         {
             int partiallySuccessfulBuildCount = 0;
-            foreach (LastTwoBuildResults buildResult in buildResults)
+            foreach (TfsLastTwoBuildResults buildResult in buildResults)
             {
                 if (buildResult.LastBuild.Status == BuildStatus.InProgress)
                 {
-                    // don't return false if in progress and was no previous build
                     if (buildResult.PreviousBuild != null
-                        && buildResult.PreviousBuild.Status != BuildStatus.Succeeded
-                        && buildResult.PreviousBuild.Status != BuildStatus.PartiallySucceeded)
-                    {
-                        log.Debug("Found previous build that failed" + buildResult.BuildDefinition.Name);
-                    }
-                    else
+                        && buildResult.PreviousBuild.Status == BuildStatus.PartiallySucceeded)
                     {
                         partiallySuccessfulBuildCount++;
                     }
                 }
-                else if (buildResult.LastBuild != null
-                        && buildResult.LastBuild.Status != BuildStatus.Succeeded
-                        && buildResult.LastBuild.Status != BuildStatus.PartiallySucceeded)
-                {
-                    log.Debug("Found last build that failed " + buildResult.BuildDefinition.Name);
-                }
                 else
                 {
-                    partiallySuccessfulBuildCount++;
+                    if (buildResult.LastBuild != null
+                            && buildResult.LastBuild.Status == BuildStatus.PartiallySucceeded)
+                    {
+                        partiallySuccessfulBuildCount++;
+                    }
                 }
             }
 
-            if (partiallySuccessfulBuildCount == buildResults.Length)
+            if (partiallySuccessfulBuildCount > 0)
             {
-                log.Debug("All builds were at least partially successful");
+                log.Debug(partiallySuccessfulBuildCount + " builds were partially successful");
             }
-            //// assume success
             return partiallySuccessfulBuildCount;
         }
 
