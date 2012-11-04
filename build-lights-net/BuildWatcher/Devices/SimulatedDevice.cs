@@ -25,7 +25,7 @@ namespace BuildWatcher.Devices
         public void Indicate(int deviceNumber, int buildSetSize, int lastBuildsWereSuccessfulCount, int lastBuildsWerePartiallySuccessfulCount, int someoneIsBuildingCount)
         {
             log.Info("Indicate: "+deviceNumber+", build set size:"+buildSetSize+", complete successs count:"+lastBuildsWereSuccessfulCount+
-                ", at least partial success count:"+lastBuildsWerePartiallySuccessfulCount);
+                ", partial success count:"+lastBuildsWerePartiallySuccessfulCount);
         }
 
         /// <summary>

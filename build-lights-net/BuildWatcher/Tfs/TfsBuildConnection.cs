@@ -1,4 +1,4 @@
-﻿namespace BuildWatcher
+﻿namespace BuildWatcher.Tfs
 {
     using System;
     using System.Collections.Generic;

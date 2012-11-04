@@ -212,7 +212,7 @@ namespace BuildWatcher.Devices
             }
             else
             {
-                if (lastBuildsWerePartiallySuccessfulCount == buildSetSize)
+                if (lastBuildsWerePartiallySuccessfulCount > 0)
                 {
                     this.SetColor(deviceNumber, 12, 9, 0); // pink is partial
                 }

@@ -97,16 +97,15 @@ namespace BuildWatcher.Devices
                 this.device.Write("led red 1\r");
             }
 
-            if ((lastBuildsWerePartiallySuccessfulCount > lastBuildsWereSuccessfulCount) && this.signalPatternFailureComplete > 0)
+            // failures are more bad that partial failures
+            if ((buildSetSize > lastBuildsWereSuccessfulCount) && this.signalPatternFailureComplete > 0)
             {
-                // number successful < number partially successful means some only partially succeeded
                 this.device.Write("bell ring " + this.signalPatternFailureComplete + "\r");
                 FireUpBellDisabler();
             }
             else
-                if ((buildSetSize > lastBuildsWerePartiallySuccessfulCount) && this.signalPatternFailurePartial > 0)
+                if ((lastBuildsWerePartiallySuccessfulCount > 0) && this.signalPatternFailurePartial > 0)
                 {
-                    // number built greater than partial success rate means some partially failed
                     this.device.Write("bell ring " + this.signalPatternFailurePartial + "\r");
                     FireUpBellDisabler();
                 }
