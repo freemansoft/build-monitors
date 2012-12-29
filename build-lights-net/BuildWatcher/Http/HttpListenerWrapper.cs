@@ -1,4 +1,10 @@
-﻿using System;
+﻿///
+/// written by freeemansoft.com
+/// 
+/// A wrapper for the http listener that caches the build results.
+/// We could have normalized under the Device API if we changed that API to take more than counts
+/// 
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
@@ -23,6 +29,10 @@ namespace BuildWatcher.Http
         private static ILog log = log4net.LogManager.GetLogger(typeof(HttpListenerWrapper));
 
         private HttpListener myListener;
+        /// <summary>
+        /// A dictionary of build results grouped by name patterns. 
+        /// This is so that we know the grouping we want to create on the http page
+        /// </summary>
         private Dictionary<String, TfsLastTwoBuildResults[]> buildResults = new Dictionary<String, TfsLastTwoBuildResults[]>();
 
 
@@ -37,11 +47,11 @@ namespace BuildWatcher.Http
         /// <summary>
         /// external entities provide data for this page
         /// </summary>
-        /// <param name="key"></param>
-        /// <param name="oneBuild"></param>
-        public void AddData(String key, TfsLastTwoBuildResults[] oneBuild)
+        /// <param name="key">The grouping key, usually the build name pattern used to run the TFS query</param>
+        /// <param name="oneBuildSet">The results of all the builds retrieved as a group under the key</param>
+        public void AddData(String key, TfsLastTwoBuildResults[] oneBuildSet)
         {
-            buildResults[key] =  oneBuild;
+            buildResults[key] =  oneBuildSet;
         }
 
         /// <summary>
@@ -57,6 +67,7 @@ namespace BuildWatcher.Http
                 myListener.Start();
                 // we can support multiple listeners if we ran this command multiple times on many threads
                 IAsyncResult result = myListener.BeginGetContext(new AsyncCallback(ListenerCallback), this);
+                // could look at result
             }
             catch (HttpListenerException e)
             {

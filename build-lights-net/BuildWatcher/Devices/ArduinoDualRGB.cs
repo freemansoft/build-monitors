@@ -253,6 +253,7 @@ namespace BuildWatcher.Devices
         /// </summary>
         /// <param name="number">input between 0-15 </param>
         /// <returns>ASCII character Hex equivalent of the number </returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1822:MarkMembersAsStatic")]
         private byte ConvertIntToAsciiChar(int number)
         {
             if (number < 0 || number > 15)

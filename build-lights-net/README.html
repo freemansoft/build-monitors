@@ -1,15 +1,24 @@
 <html>
-<ead>
-<title>Build Lights Readme</title>
-</ead>
+<head>
+<title>C# based TFS Build Monitor Build Lights Readme</title>
+</head>
 <body>
-<h2>VERSION 12.06</h2>
+<h2>VERSION 12.12</h2>
 
 <h2>Building and Configuration</h2>
-Developed under Visual Studio 2010 on Windows 7. Not tested under any other version. 
+Developed under Visual Studio 2012 on Windows 7. The Unit test projects are VS2012 compatible
 <ul>
-<li>The TfsUrl should be fully formed.  In my case it is https://[domain]/tfs/[namespace?]
+<li>The TfsUrl should be fully formed.  In my case it is https://[domain]/tfs/[namespace?]</li>
+<li>This expects explicit credentials and does not support single sign on, that I know of</li>
+</ul>
 
 <h2>Execution and configuration</h2>
-Edit the App.config file to tell the system where your TFS connection information and how your RGB serial port 
-controlled lights are to be configured
+Edit the App.config file and build the app.  There is no binary download at this time (12/12/12)
+<ul>
+<li>Tell the system where your TFS connection information </li>
+<li>Select the hardware device or the simulated device</li>
+<li>The communication port/speed or ethernet device for a hardware build status light, depending how it is connected</li>
+</ul>
+</body>
+</head>
+</html>
