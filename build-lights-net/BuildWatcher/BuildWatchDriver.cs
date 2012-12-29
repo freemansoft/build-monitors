@@ -1,4 +1,11 @@
-﻿namespace BuildWatcher
+﻿//
+// built by freemansoft
+// 
+// main driver class for TFS build watcher
+// normally spring.net configured
+//
+
+namespace BuildWatcher
 {
     using System;
     using System.Collections.Generic;
@@ -47,7 +54,7 @@
         /// <summary>
         /// delay between loops
         /// </summary>
-        private int pollPauseInMilliseconds;
+        private int pollPauseBetweenRequestsInMilliseconds;
         /// <summary>
         /// delay after receiving any exception, give server time to recover
         /// </summary>
@@ -87,13 +94,13 @@
         /// <param name="allAdapters"></param>
         /// <param name="device"></param>
         public BuildWatchDriver(List<TfsBuildAdapter> allAdapters, IBuildIndicatorDevice device,
-            int pollPauseInMilliseconds,
+            int pollPauseBetweenRequestsInMilliseconds,
             int exceptionPauseInMilliseconds,
             HttpListenerWrapper httpListenerWrapper)
         {
             this.allAdapters = allAdapters;
             this.device = device;
-            this.pollPauseInMilliseconds = pollPauseInMilliseconds;
+            this.pollPauseBetweenRequestsInMilliseconds = pollPauseBetweenRequestsInMilliseconds;
             this.exceptionPauseInMilliseconds = exceptionPauseInMilliseconds;
             this.httpListenerWrapper = httpListenerWrapper;
         }
@@ -135,6 +142,7 @@
                             }
                         }
                         index++;
+                        System.Threading.Thread.Sleep(pollPauseBetweenRequestsInMilliseconds);
                     }
                 }
 
@@ -175,7 +183,6 @@
                     log.Error("Weird parsing or incomplete XML.  Usually a something in the night thing so retry after somee sleep " + e);
                     this.IndicateProblem();
                 }
-                System.Threading.Thread.Sleep(pollPauseInMilliseconds);
             }
 
         }

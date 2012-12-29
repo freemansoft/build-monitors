@@ -234,6 +234,7 @@ namespace BuildWatcher.Tfs
         /// </summary>
         /// <param name="buildResults">buld results to be analyzed</param>
         /// <returns>number of builds In Progress</returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1822:MarkMembersAsStatic")]
         public int SomeoneIsBuilding(TfsLastTwoBuildResults[] buildResults)
         {
             int buildCount = 0;
@@ -288,7 +289,7 @@ namespace BuildWatcher.Tfs
 
             if (successfulBuildCount == buildResults.Length)
             {
-                log.Debug("All builds were completely successful");
+                log.Debug("All builds were completely successful " + successfulBuildCount);
             }
             //// assume success
             return successfulBuildCount;

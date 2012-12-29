@@ -1,8 +1,8 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using BuildWatcher;
+using BuildWatcher.Tfs;
 
-namespace BuldWatcherTests
+namespace BuildWatcherTests.Tfs
 {
     [TestClass]
     public class TfsBuildConnectionTest

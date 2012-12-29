@@ -1,5 +1,7 @@
 build-lights-java is a java program that will monitor builds on hudson and send that status to serial controlled build lights. 
-It includes drivers for several devices that I have built. The firmware for those devices is on github
+It includes drivers for several devices that I have built. The firmware for those devices is on github under this same account
 
 build-lights-net is a C# program that monitors builds on TFS 2010 and sends the status to serial controlled build lights.
-It includes drivers for one of the devices that I have built. The firmware for those devices is on github.
+It includes drivers for one of the devices that I have built. The firmware for those devices is on github under this same account.
+
+Writeups on the hardware for these devices may be available at http://joe.blog.freemansoft.com/
