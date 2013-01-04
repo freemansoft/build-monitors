@@ -120,9 +120,15 @@ namespace BuildWatcher.Devices
         internal Dictionary<String, String> CreatePostDataSet(int buildSetSize, int lastBuildsWereSuccessfulCount, int lastBuildsWerePartiallySuccessfulCount)
         {
             Dictionary<String, String>postSet = new Dictionary<string,string>();
+            int numberFailed = buildSetSize - lastBuildsWereSuccessfulCount - lastBuildsWerePartiallySuccessfulCount;
+            postSet.Add("s0", "Builds:  " + buildSetSize);
+            postSet.Add("s1", "Success: " + lastBuildsWereSuccessfulCount);
+            postSet.Add("s2", "Partial: " + lastBuildsWerePartiallySuccessfulCount);
+            postSet.Add("s3", "Failed:  " + numberFailed);
+            postSet.Add("s4", "            ");
+            postSet.Add("s5", "            ");
             int lamp = 0;
             while (lamp < numberOfLamps && lamp < buildSetSize){
-                int numberFailed = buildSetSize - lastBuildsWereSuccessfulCount - lastBuildsWerePartiallySuccessfulCount;
                 if (lamp < numberFailed)
                 {
                     postSet.Add("r" + lamp, MAX_BRIGHT);
