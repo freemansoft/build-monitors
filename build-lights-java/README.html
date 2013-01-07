@@ -17,10 +17,11 @@ on the Internet.
         <br>$M2_REPO\org\rxtx\RXTXcomm\2.2pre2</li>
     <li>Copy the two dll files and the jar using the following naming convention style
         <ul>
-        <li>rxtxcomm.jar     --> RXTXcomm-2.2pre2-rtxcomm.jar</li>
+        <li>rxtxcomm.jar     --> RXTXcomm-2.2pre2.jar</li>
         <li>rxtxSerial.dll   --> RXTXcomm-2.2pre2-rxtxSerial.dll</li>
         <li>// this jar missing 2.2pre2 rxtxParallel.dll --> RXTXcomm-2.2pre2-rxtxParallel.dll</li>
         </ul>
+    <li>Copy the sample rxtx pom file src/test/resources/RXTXcomm-2.2pre2.pom to $M2_REPO\org\rxtx\RXTXcomm\2.2pre2 </li>
 </ul>  
 <b>linux</b>  I haven't tried this on LINUX but it should work with the appropriate libraries.
 You will probably have to change the entry in the pom so that the so file will get installed
@@ -30,8 +31,10 @@ Then compile the project and build the eclipse project configuration. We skip te
 they expect all supported hardware to be in hardcoded places. You will probably just run a couple 
 of them that are tied to your hardware
 <ol>
+<li>You may have to run the commands with the <kbd>-Dmaven.repo.local=%M2_REPO%</kbd> to tell maven that it 
+    shouldn't look on the internet for the rxtx files</li>
 <li>run <kbd>mvn -Dmaven.test.skip=true clean install</kbd></li>
-<li>run <kbd>mvn eclipse:eclipse</kbd></li>
+<li>run <kbd>mvn eclipse:eclipse</kbd> and then refresh your project</li>
 </ol>
 
 <h2>Execution and configuration</h2>
