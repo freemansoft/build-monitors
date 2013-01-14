@@ -1,4 +1,6 @@
-package com.freemansoft;
+package com.freemansoft.watcher.devices;
+
+import com.freemansoft.SerialDevice;
 
 /**
  * This class assumes you have a 5 light Arduino. My sample uses the Jee Labs Dimmer plug which has

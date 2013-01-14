@@ -19,7 +19,7 @@ package com.freemansoft;
  * 
  * @author Joe Freeman
  */
-public interface BuildLightDevice {
+public interface IBuildLightDevice {
 
     /**
      * @return the number of build lights supported on this device

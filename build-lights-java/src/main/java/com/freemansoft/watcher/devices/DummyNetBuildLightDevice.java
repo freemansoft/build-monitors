@@ -1,4 +1,4 @@
-package com.freemansoft;
+package com.freemansoft.watcher.devices;
 
 /*
  * Copyright 2011 FreemanSoft Inc.
@@ -17,21 +17,19 @@ package com.freemansoft;
 import org.apache.log4j.Logger;
 
 /**
- * simple logging utilities
+ * Dummy Build light that implements the Ethernet based constructor.
+ * <p>
+ * Mainly for testing.
  * 
- * @author Joe Freeman
+ * @since Jan, 11, 2013
  */
-public class LogUtil {
+public class DummyNetBuildLightDevice extends DummyBuildLightDevice {
 
-    /**
-     * some thread based logging. should use a logger
-     * 
-     * @param message
-     * @param addNewLine
-     */
-    public static void logWithThreadName(final Logger logger, final String message,
-                    final boolean addNewLine) {
-        logger.debug("thread: " + Thread.currentThread().getName() + " - " + message);
-    }
+	public DummyNetBuildLightDevice(final String devicePath) {
+		if (devicePath == null) {
+			throw new IllegalArgumentException("No network device specified");
+		}
+		Logger.getLogger(this.getClass()).info("Dummy logger created");
+	}
 
 }
