@@ -155,6 +155,13 @@
         <groupId>log4j</groupId>
         <artifactId>log4j</artifactId>
         <version>1.2.16</version>
-      </dependency>
+    </dependency>
+    <!--  added to support ethernet based devices -->
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.2.2</version>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
 </project>

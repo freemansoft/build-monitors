@@ -3,7 +3,7 @@
 <title>Build Lights Readme</title>
 </ead>
 <body>
-<h2>VERSION 11.06</h2>
+<h2>VERSION 13.01</h2>
 
 <h2>Building and Configuration</h2>
 You can use maven to build this project and create eclipse projects.  A full verison of 
@@ -12,7 +12,7 @@ m2_repo.  maven will use the copy in your local repo after whining a little abou
 on the Internet.
 </p>
 <ul>
-    <li>Download the rxtx sip file and unpack it.</li>  
+    <li>Download the rxtx zip file and unpack it.</li>  
     <li>Create his directory your local m2_repo 
         <br>$M2_REPO\org\rxtx\RXTXcomm\2.2pre2</li>
     <li>Copy the two dll files and the jar using the following naming convention style
@@ -21,7 +21,7 @@ on the Internet.
         <li>rxtxSerial.dll   --> RXTXcomm-2.2pre2-rxtxSerial.dll</li>
         <li>// this jar missing 2.2pre2 rxtxParallel.dll --> RXTXcomm-2.2pre2-rxtxParallel.dll</li>
         </ul>
-    <li>Copy the sample rxtx pom file src/test/resources/RXTXcomm-2.2pre2.pom to $M2_REPO\org\rxtx\RXTXcomm\2.2pre2 </li>
+    <li>Copy the sample rxtx pom file src/test/resources/RXTXcomm-2.2pre2.pom to $M2_REPO\org\rxtx\RXTXcomm\2.2pre2 to simplify usage </li>
 </ul>  
 <b>linux</b>  I haven't tried this on LINUX but it should work with the appropriate libraries.
 You will probably have to change the entry in the pom so that the so file will get installed
@@ -31,10 +31,9 @@ Then compile the project and build the eclipse project configuration. We skip te
 they expect all supported hardware to be in hardcoded places. You will probably just run a couple 
 of them that are tied to your hardware
 <ol>
-<li>You may have to run the commands with the <kbd>-Dmaven.repo.local=%M2_REPO%</kbd> to tell maven that it 
-    shouldn't look on the internet for the rxtx files</li>
 <li>run <kbd>mvn -Dmaven.test.skip=true clean install</kbd></li>
 <li>run <kbd>mvn eclipse:eclipse</kbd> and then refresh your project</li>
+<li>Open Ecipse and turn OFF continuous testing if you have Infinitest installed. It doesn't know the native library load path and will fail in ways that will confuse you for days.</li>
 </ol>
 
 <h2>Execution and configuration</h2>
@@ -48,14 +47,29 @@ from within Eclipse then you need to run them with additional configuration.
     and add the following with the appropriate path for your environment
             -Djava.library.path=<path_to_project>/target/lib
 
-    The main program (BuildLights) requires parameters when run from command line or unit test.
+    The main program (BuildMonitorDriver) reads its paramteres from a properties file, default.properties by default.
+    The location of the properties file can be overriden by passing the name of the new properties file as a command line parameter.
+    <p>
+    Example parameters are in src/main/resources/default.properties and in src/test/resources/test.properties.
     The parameters are documented in the source file.  You can set the parameters.  Open
         Run Configurations-->Arguments-->Program Arguments
-    and add the 5 parameters.  These settings run two lights based on Hudson builds on the Internet
-    with an attached light set on the specfieid COM port.
-        COM3 9600 com.freemansoft.ArduinoDualRGB http://ci.jenkins-ci.org/cc.xml plugins_virtualbox,plugins_checkstyle
+    and add the properties file name as a parameter.  These settings run two lights based on Hudson builds on the Internet
+    with an attached light set on the specified COM port in my environment.
+        <pre>
+        device.serial.port=COM3
+        device.serial.speed=9600
+        device.class.name=com.freemansoft.watcher.devices.ArduinoDualRGB
+        buildserver.uri=https://ci.jenkins-ci.org/cc.xml
+        buildserver.projects=lugins_virtualbox,plugins_checkstyle
+        </pre>    
     or
-        COM9 115200 com.freemansoft.LEDCube http://ci.jenkins-ci.org/cc.xml plugins_virtualbox
+        <pre>
+        device.serial.port=COM3
+        device.serial.speed=112500
+        device.class.name=com.freemansoft.watcher.devices.LEDCube
+        buildserver.uri=https://ci.jenkins-ci.org/cc.xml
+        buildserver.projects=junit-runtime-suite
+        </pre>    
 </pre>
 
 <h3>maven</h3>

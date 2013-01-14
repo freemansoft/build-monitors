@@ -3,14 +3,14 @@
 <log4j:configuration>
  <appender name="stdout" class="org.apache.log4j.ConsoleAppender">
    <layout class="org.apache.log4j.PatternLayout">
-     <param name="ConversionPattern" value="%d{ABSOLUTE} 
-      %5p %c{1}:%L - %m%n"/>
+     <param name="ConversionPattern" value="%-4r [%t] %-5p %c %x - %m%n"/> 
+
 
     <!--  you can change this to debug or add additional filters for more output -->
     </layout>
      </appender>
        <root>
-      <priority value="info"></priority>
+      <priority value="debug"></priority>
       <appender-ref ref="stdout"/>
     </root>
 </log4j:configuration>

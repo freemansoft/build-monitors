@@ -30,7 +30,6 @@ import gnu.io.SerialPort;
 
 import org.apache.log4j.Logger;
 
-import com.freemansoft.LogUtil;
 import com.freemansoft.SerialDevice;
 
 /**
@@ -43,41 +42,41 @@ import com.freemansoft.SerialDevice;
  */
 public class SimpleWrite {
 
-    private static Logger LOG = Logger.getLogger(SerialDevice.class);
+	private static Logger LOG = Logger.getLogger(SerialDevice.class);
 
-    static String MESSAGE_STRING = "Hello, world!";
+	static String MESSAGE_STRING = "Hello, world!";
 
-    /**
-     * Method declaration
-     * 
-     * 
-     * @param args
-     * 
-     * @see
-     */
-    public static void main(final String[] args) {
-        String defaultPort = "COM9";
+	/**
+	 * Method declaration
+	 * 
+	 * 
+	 * @param args
+	 * 
+	 * @see
+	 */
+	public static void main(final String[] args) {
+		String defaultPort = "COM9";
 
-        if (args.length > 0) {
-            defaultPort = args[0];
-        }
-        final SerialDevice device =
-            new SerialDevice(defaultPort, 115200, SerialPort.DATABITS_8, SerialPort.STOPBITS_1,
-                SerialPort.PARITY_NONE);
+		if (args.length > 0) {
+			defaultPort = args[0];
+		}
+		final SerialDevice device = new SerialDevice(defaultPort, 115200,
+				SerialPort.DATABITS_8, SerialPort.STOPBITS_1,
+				SerialPort.PARITY_NONE);
 
-        if (device != null) {
-            device.write(MESSAGE_STRING);
-            LogUtil.logWithThreadName(LOG, "Pausing while writer does it's thing", true);
-            // the app could do other stuff here
-            while (device.charactersQueued()) {
-                System.out.print("*");
-            }
-            LogUtil.logWithThreadName(LOG, "Writer thread is done", true);
-        } else {
-            LogUtil.logWithThreadName(LOG, "port " + defaultPort + " not found.", true);
-        }
-        device.close();
-        LogUtil.logWithThreadName(LOG, "main is done", true);
-    }
+		if (device != null) {
+			device.write(MESSAGE_STRING);
+			LOG.debug("Pausing while writer does it's thing");
+			// the app could do other stuff here
+			while (device.charactersQueued()) {
+				System.out.print("*");
+			}
+			LOG.debug("Writer thread is done");
+		} else {
+			LOG.debug("port " + defaultPort + " not found.");
+		}
+		device.close();
+		LOG.debug("main is done");
+	}
 
 }

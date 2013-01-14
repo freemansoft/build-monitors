@@ -30,7 +30,6 @@ import gnu.io.SerialPort;
 
 import org.apache.log4j.Logger;
 
-import com.freemansoft.LogUtil;
 import com.freemansoft.SerialDevice;
 
 /**
@@ -42,42 +41,42 @@ import com.freemansoft.SerialDevice;
  */
 public class SimpleRead {
 
-    private static Logger LOG = Logger.getLogger(SerialDevice.class);
+	private static Logger LOG = Logger.getLogger(SerialDevice.class);
 
-    /**
-     * Method declaration
-     * 
-     * 
-     * @param args
-     * 
-     * @see
-     */
-    public static void main(final String[] args) {
-        String defaultPort = "COM9";
+	/**
+	 * Method declaration
+	 * 
+	 * 
+	 * @param args
+	 * 
+	 * @see
+	 */
+	public static void main(final String[] args) {
+		String defaultPort = "COM9";
 
-        if (args.length > 0) {
-            defaultPort = args[0];
-        }
+		if (args.length > 0) {
+			defaultPort = args[0];
+		}
 
-        final SerialDevice device =
-            new SerialDevice(defaultPort, 115200, SerialPort.DATABITS_8, SerialPort.STOPBITS_1,
-                SerialPort.PARITY_NONE);
-        if (device != null) {
-            try {
-                LogUtil.logWithThreadName(LOG, "Sleeping waiting for call back from port", true);
-                // read for 5 seconds
-                Thread.sleep(5000);
-            } catch (final InterruptedException e) {
-                LogUtil.logWithThreadName(LOG, "Reader thread is interrupted", true);
-            }
-            LogUtil.logWithThreadName(LOG, "device captured: '" + device.getAvailableCharacters()
-                + "'", true);
-            device.close();
-        } else {
-            LogUtil.logWithThreadName(LOG, "port " + defaultPort + " not found.", true);
-        }
-        LogUtil.logWithThreadName(LOG, "main is done", true);
+		final SerialDevice device = new SerialDevice(defaultPort, 115200,
+				SerialPort.DATABITS_8, SerialPort.STOPBITS_1,
+				SerialPort.PARITY_NONE);
+		if (device != null) {
+			try {
+				LOG.debug("Sleeping waiting for call back from port");
+				// read for 5 seconds
+				Thread.sleep(5000);
+			} catch (final InterruptedException e) {
+				LOG.debug("Reader thread is interrupted");
+			}
+			LOG.debug("device captured: '" + device.getAvailableCharacters()
+					+ "'");
+			device.close();
+		} else {
+			LOG.debug("port " + defaultPort + " not found.");
+		}
+		LOG.debug("main is done");
 
-    }
+	}
 
 }
