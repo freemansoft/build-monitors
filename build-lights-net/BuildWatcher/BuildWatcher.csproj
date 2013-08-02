@@ -87,6 +87,8 @@
     <Compile Include="Devices\ArduinoDualRGB.cs" />
     <Compile Include="Devices\ArduinoEthernetLEDStrip.cs" />
     <Compile Include="Devices\CheapLaunchpadMSP430.cs" />
+    <Compile Include="Devices\ArduinoNeoPixel.cs" />
+    <Compile Include="Devices\DelcomUSBVIHID.cs" />
     <Compile Include="Devices\Freemometer.cs" />
     <Compile Include="Devices\SimulatedDevice.cs" />
     <Compile Include="GlobalSuppressions.cs" />

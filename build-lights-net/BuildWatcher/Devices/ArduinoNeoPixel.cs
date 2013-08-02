@@ -1,11 +1,10 @@
 ﻿/// Written by Joe Freeman joe@freemansoft.com
 /// beerware license
 /// 
-/// TFS watcher driver for the simple TILaunchpad / MSP430 based device described on http://joe.blog.freemansoft.com
-/// The device has a single RGB LED and supports blink patterns like the Freemometer
-/// commands
+/// TFS watcher driver for a Adafruit NeoPixel shield with WS2812 LEds with 2811 embedded controllers
+/// We use the whole shield to show status of as many builds as possible in set
 /// ?\r - help
-/// rgb r g b pattern\r - r:0..255 g:0.255 b:0.255 pattern:0..9
+/// rgb index r g b pattern\r --> index:0..numPix r:0..255 g:0.255 b:0.255 pattern:0..9
 /// 
 
 namespace BuildWatcher.Devices
@@ -24,18 +23,19 @@ namespace BuildWatcher.Devices
     /// TODO: Update summary.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "MSP")]
-    public class CheapLaunchpadMSP430 : IBuildIndicatorDevice
+    public class ArduinoNeoPixel : IBuildIndicatorDevice
     {
         /// <summary>
         /// log4net logger
         /// </summary>
-        private static ILog log = log4net.LogManager.GetLogger(typeof(CheapLaunchpadMSP430));
+        private static ILog log = log4net.LogManager.GetLogger(typeof(ArduinoNeoPixel));
 
         private SerialPort device;
         private int signalPatternFailureComplete = 0;
         private int signalPatternFailurePartial = 0;
+        private int numLamps = 0;
 
-        public CheapLaunchpadMSP430(SerialPort device, int signalPatternFailureComplete, int signalPatternFailurePartial)
+        public ArduinoNeoPixel(SerialPort device, int signalPatternFailureComplete, int signalPatternFailurePartial, int numLamps)
         {
             if (device == null)
             {
@@ -44,7 +44,8 @@ namespace BuildWatcher.Devices
             this.device = device;
             this.signalPatternFailureComplete = signalPatternFailureComplete;
             this.signalPatternFailurePartial = signalPatternFailurePartial;
-            log.Info("Created CheapLaunchpadMSP430 on port " + device.PortName);
+            this.numLamps = numLamps;
+            log.Info("Created ArduinoNeoPixel on port " + device.PortName);
         }
 
         /// <summary>
@@ -58,22 +59,26 @@ namespace BuildWatcher.Devices
         /// <param name="someoneIsBuildingCount">number of builds in progress</param>
         public void Indicate(int deviceNumber, int buildSetSize, int lastBuildsWereSuccessfulCount, int lastBuildsWerePartiallySuccessfulCount, int someoneIsBuildingCount)
         {
-            if (deviceNumber > 0)
+            this.device.Write("blank\r");
+            // ignore the device number because we aren't doing one build-set per pixel but one build per pixel as we iterate across sets
+            for (int buildIndex = numLamps - 1; buildIndex >= 0; buildIndex--)
             {
-                return;
-            }
-            if (lastBuildsWereSuccessfulCount == buildSetSize)
-            {
-                this.device.Write("rgb 0 250 0 1\r");
-            }
-            else if (lastBuildsWerePartiallySuccessfulCount > 0)
-            {
-                // sometimes we use a pink here
-                this.device.Write("rgb 200 100 0 " + signalPatternFailurePartial + "\r");
-            }
-            else
-            {
-                this.device.Write("rgb 250 0 0 " + signalPatternFailureComplete + "\r");
+                if (buildIndex < buildSetSize - lastBuildsWereSuccessfulCount - lastBuildsWerePartiallySuccessfulCount)
+                {
+                    this.device.Write("rgb " + buildIndex + " 220 0 0 " + signalPatternFailureComplete + "\r");
+                }
+                else if (buildIndex < buildSetSize - lastBuildsWereSuccessfulCount)
+                {
+                    this.device.Write("rgb " + buildIndex + " 190 80 0 " + signalPatternFailurePartial + "\r");
+                }
+                else if (buildIndex < buildSetSize)
+                {
+                    this.device.Write("rgb " + buildIndex + " 0 220 0 1\r");
+                }
+                else if (buildIndex < numLamps)
+                {
+                    this.device.Write("rgb " + buildIndex + " 0 0 0 0\r");
+                }
             }
         }
 
@@ -84,11 +89,7 @@ namespace BuildWatcher.Devices
         /// <param name="deviceNumber">build number or light number, 0 based</param>
         public void IndicateProblem(int deviceNumber)
         {
-            if (deviceNumber > 0)
-            {
-                return;
-            }
-            this.device.Write("rgb 128 128 0 " + "9" + "\r");
+            this.device.Write("rgb -1 128 128 0 " + "9" + "\r");
         }
 
 
