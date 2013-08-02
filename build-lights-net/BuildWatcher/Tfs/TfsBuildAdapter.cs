@@ -264,9 +264,13 @@ namespace BuildWatcher.Tfs
                 if (buildResult.LastBuild.Status == BuildStatus.InProgress)
                 {
                     // treat as not successful if in progress and was no previous build
-                    if (buildResult.PreviousBuild != null && buildResult.PreviousBuild.Status != BuildStatus.Succeeded)
+                    if (buildResult.PreviousBuild != null && buildResult.PreviousBuild.Status == BuildStatus.Failed)
                     {
-                        log.Debug("Found previous build that was not fully successful " + buildResult.BuildDefinition.Name + " - " + buildResult.PreviousBuild.Status);
+                        log.Debug("Found previous build that failed               " + buildResult.BuildDefinition.Name + " - " + buildResult.PreviousBuild.Status);
+                    }
+                    else if (buildResult.PreviousBuild != null && buildResult.PreviousBuild.Status != BuildStatus.Succeeded)
+                    {
+                        log.Debug("Found previous build that was partially failed " + buildResult.BuildDefinition.Name + " - " + buildResult.PreviousBuild.Status);
                     }
                     else
                     {
@@ -275,10 +279,13 @@ namespace BuildWatcher.Tfs
                 }
                 else
                 {
-                    if (buildResult.LastBuild != null && buildResult.LastBuild.Status != BuildStatus.Succeeded)
+                    if (buildResult.LastBuild != null && buildResult.LastBuild.Status == BuildStatus.Failed)
                     {
-                        //// not in progress and last build did not succeed
-                        log.Debug("Found last build that was not fully successful " + buildResult.BuildDefinition.Name + " - " + buildResult.LastBuild.Status);
+                        log.Debug("Found last build that failed               " + buildResult.BuildDefinition.Name + " - " + buildResult.LastBuild.Status);
+                    }
+                    else if (buildResult.LastBuild != null && buildResult.LastBuild.Status != BuildStatus.Succeeded)
+                    {
+                        log.Debug("Found last build that was partially failed " + buildResult.BuildDefinition.Name + " - " + buildResult.LastBuild.Status);
                     }
                     else
                     {
@@ -309,7 +316,9 @@ namespace BuildWatcher.Tfs
                 if (buildResult.LastBuild.Status == BuildStatus.InProgress)
                 {
                     if (buildResult.PreviousBuild != null
-                        && buildResult.PreviousBuild.Status == BuildStatus.PartiallySucceeded)
+                        && buildResult.PreviousBuild.Status != BuildStatus.Succeeded
+                        && buildResult.PreviousBuild.Status != BuildStatus.Failed
+                        )
                     {
                         partiallySuccessfulBuildCount++;
                     }
@@ -317,7 +326,9 @@ namespace BuildWatcher.Tfs
                 else
                 {
                     if (buildResult.LastBuild != null
-                            && buildResult.LastBuild.Status == BuildStatus.PartiallySucceeded)
+                            && buildResult.LastBuild.Status != BuildStatus.Succeeded
+                            && buildResult.LastBuild.Status != BuildStatus.Failed
+                        )
                     {
                         partiallySuccessfulBuildCount++;
                     }
