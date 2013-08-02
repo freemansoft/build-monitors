@@ -33,7 +33,7 @@
         ///  Gets or sets the url to the TFS server retrieved from configuration
         /// </summary>
         public Uri TfsUrl { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the network credentials created from userid, password and domain
         /// </summary>
@@ -60,7 +60,10 @@
             }
             else
             {
-                this.TfsTeamProjects = new TfsTeamProjectCollection(this.TfsUrl, new UICredentialsProvider());
+                //this.TfsTeamProjects = new TfsTeamProjectCollection(this.TfsUrl, new UICredentialsProvider());
+                this.TfsTeamProjects = new TfsTeamProjectCollection(this.TfsUrl,
+                    new TfsClientCredentials(null, true));
+
             }
 
             this.TfsTeamProjects.EnsureAuthenticated();

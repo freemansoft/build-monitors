@@ -65,15 +65,15 @@ namespace BuildWatcher.Devices
             {
                 if (buildIndex < buildSetSize - lastBuildsWereSuccessfulCount - lastBuildsWerePartiallySuccessfulCount)
                 {
-                    this.device.Write("rgb " + buildIndex + " 220 0 0 " + signalPatternFailureComplete + "\r");
+                    this.device.Write("rgb " + buildIndex + " 10 0 0 " + signalPatternFailureComplete + "\r");
                 }
                 else if (buildIndex < buildSetSize - lastBuildsWereSuccessfulCount)
                 {
-                    this.device.Write("rgb " + buildIndex + " 190 80 0 " + signalPatternFailurePartial + "\r");
+                    this.device.Write("rgb " + buildIndex + " 10 10 0 " + signalPatternFailurePartial + "\r");
                 }
                 else if (buildIndex < buildSetSize)
                 {
-                    this.device.Write("rgb " + buildIndex + " 0 220 0 1\r");
+                    this.device.Write("rgb " + buildIndex + " 0 10 0 1\r");
                 }
                 else if (buildIndex < numLamps)
                 {
@@ -89,7 +89,7 @@ namespace BuildWatcher.Devices
         /// <param name="deviceNumber">build number or light number, 0 based</param>
         public void IndicateProblem(int deviceNumber)
         {
-            this.device.Write("rgb -1 128 128 0 " + "9" + "\r");
+            this.device.Write("rgb -1 10 10 0 " + "9" + "\r");
         }
 
 
