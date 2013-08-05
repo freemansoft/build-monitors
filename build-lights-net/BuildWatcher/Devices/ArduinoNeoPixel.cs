@@ -65,11 +65,11 @@ namespace BuildWatcher.Devices
             {
                 if (buildIndex < buildSetSize - lastBuildsWereSuccessfulCount - lastBuildsWerePartiallySuccessfulCount)
                 {
-                    this.device.Write("rgb " + buildIndex + " 10 0 0 " + signalPatternFailureComplete + "\r");
+                    this.device.Write("rgb " + buildIndex + " 25 0 0 " + signalPatternFailureComplete + "\r");
                 }
                 else if (buildIndex < buildSetSize - lastBuildsWereSuccessfulCount)
                 {
-                    this.device.Write("rgb " + buildIndex + " 10 10 0 " + signalPatternFailurePartial + "\r");
+                    this.device.Write("rgb " + buildIndex + " 20 20 0 " + signalPatternFailurePartial + "\r");
                 }
                 else if (buildIndex < buildSetSize)
                 {
