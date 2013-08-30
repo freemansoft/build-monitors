@@ -13,8 +13,10 @@ namespace BuildWatcher.Tfs
     using Microsoft.TeamFoundation.VersionControl.Client;
 
     /// <summary>
+    /// Represents the connection to a TFS server
     /// Contains all of the functionaly required to talk with TFS for a given set of builds
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "Tfs")]
     public class TfsBuildAdapter
     {
         /// <summary>
@@ -126,14 +128,14 @@ namespace BuildWatcher.Tfs
         }
 
         /// <summary>
-        /// Rets the last two builds for all build definitions matching the passe din parameters
+        /// Rets the last two builds for all build definitions matching the passed in parameters
         /// </summary>
         /// <param name="teamProject">the team project to uery against</param>
         /// <param name="buildDefinitionPattern">optional build definition pattern</param>
         /// <returns>build result pairs</returns>
         public TfsLastTwoBuildResults[] GetLastTwoBuilds(TeamProject teamProject, string buildDefinitionPattern)
         {
-            log.Debug("Finding build results for definition pattern " + buildDefinitionPattern);
+            log.Info("Finding build results for definition pattern " + buildDefinitionPattern);
             IBuildDetailSpec buildDetailsQuerySpec;
             if (buildDefinitionPattern != null)
             {
@@ -146,9 +148,10 @@ namespace BuildWatcher.Tfs
             //// Failure to set this property results in ALL of the build information being retrieved resulting in 10X+ call times
             //// You can retrieve subsets with something like
             //// buildDetailsQuerySpec.InformationTypes = new string[] { "ActivityTracking", "AgentScopeActivityTracking" };
-            buildDetailsQuerySpec.InformationTypes = null;
+            buildDetailsQuerySpec.InformationTypes = new string[0];
             //// last and previous
             buildDetailsQuerySpec.MaxBuildsPerDefinition = 2;
+            buildDetailsQuerySpec.QueryOptions = QueryOptions.Definitions;
             //// use start time descending because InProgress builds don't seem to sort correctly when using EndTimeDescending
             buildDetailsQuerySpec.QueryOrder = BuildQueryOrder.StartTimeDescending;
             IBuildQueryResult buildResults = this.Connection.BuildServer.QueryBuilds(buildDetailsQuerySpec);
@@ -246,7 +249,7 @@ namespace BuildWatcher.Tfs
                     buildCount++;
                 }
             }
-
+            log.Info("Found " + buildCount + " builds in progress");
             return buildCount;
         }
 
@@ -266,11 +269,11 @@ namespace BuildWatcher.Tfs
                     // treat as not successful if in progress and was no previous build
                     if (buildResult.PreviousBuild != null && buildResult.PreviousBuild.Status == BuildStatus.Failed)
                     {
-                        log.Debug("Found previous build that failed               " + buildResult.BuildDefinition.Name + " - " + buildResult.PreviousBuild.Status);
+                        log.Info("Found previous build that failed               " + buildResult.BuildDefinition.Name + " - " + buildResult.PreviousBuild.Status);
                     }
                     else if (buildResult.PreviousBuild != null && buildResult.PreviousBuild.Status != BuildStatus.Succeeded)
                     {
-                        log.Debug("Found previous build that was partially failed " + buildResult.BuildDefinition.Name + " - " + buildResult.PreviousBuild.Status);
+                        log.Info("Found previous build that was partially failed " + buildResult.BuildDefinition.Name + " - " + buildResult.PreviousBuild.Status);
                     }
                     else
                     {
@@ -281,11 +284,11 @@ namespace BuildWatcher.Tfs
                 {
                     if (buildResult.LastBuild != null && buildResult.LastBuild.Status == BuildStatus.Failed)
                     {
-                        log.Debug("Found last build that failed               " + buildResult.BuildDefinition.Name + " - " + buildResult.LastBuild.Status);
+                        log.Info("Found last build that failed               " + buildResult.BuildDefinition.Name + " - " + buildResult.LastBuild.Status);
                     }
                     else if (buildResult.LastBuild != null && buildResult.LastBuild.Status != BuildStatus.Succeeded)
                     {
-                        log.Debug("Found last build that was partially failed " + buildResult.BuildDefinition.Name + " - " + buildResult.LastBuild.Status);
+                        log.Info("Found last build that was partially failed " + buildResult.BuildDefinition.Name + " - " + buildResult.LastBuild.Status);
                     }
                     else
                     {
@@ -343,7 +346,7 @@ namespace BuildWatcher.Tfs
         }
 
         /// <summary>
-        /// Totally dummy method derived from something on the internet I didn't fell like deleting yet
+        /// Totally dummy method derived from some TFS code off the internet I didn't feel like deleting yet
         /// </summary>
         public void GrabAllBuildsForAllTime()
         {

@@ -30,17 +30,17 @@ namespace BuildWatcherTests.Devices
             ArduinoEthernetLEDStrip stripController = new ArduinoEthernetLEDStrip(null, 0);
             Dictionary<string, string> postSet = stripController.CreatePostDataSet(3, 1, 1);
             Assert.AreEqual(9,postSet.Count);
-            Assert.IsNotNull(postSet["r0"].Equals(ArduinoEthernetLEDStrip.MAX_BRIGHT));
-            Assert.IsNotNull(postSet["g0"].Equals(ArduinoEthernetLEDStrip.NO_BRIGHT));
-            Assert.IsNotNull(postSet["b0"].Equals(ArduinoEthernetLEDStrip.NO_BRIGHT));
+            Assert.IsNotNull(postSet["r0"].Equals(ArduinoEthernetLEDStrip.MaxBright));
+            Assert.IsNotNull(postSet["g0"].Equals(ArduinoEthernetLEDStrip.NoBright));
+            Assert.IsNotNull(postSet["b0"].Equals(ArduinoEthernetLEDStrip.NoBright));
 
-            Assert.IsNotNull(postSet["r1"].Equals(ArduinoEthernetLEDStrip.MIX_BRIGHT));
-            Assert.IsNotNull(postSet["g1"].Equals(ArduinoEthernetLEDStrip.MIX_BRIGHT));
-            Assert.IsNotNull(postSet["b1"].Equals(ArduinoEthernetLEDStrip.NO_BRIGHT));
+            Assert.IsNotNull(postSet["r1"].Equals(ArduinoEthernetLEDStrip.MixBright));
+            Assert.IsNotNull(postSet["g1"].Equals(ArduinoEthernetLEDStrip.MixBright));
+            Assert.IsNotNull(postSet["b1"].Equals(ArduinoEthernetLEDStrip.NoBright));
 
-            Assert.IsNotNull(postSet["r2"].Equals(ArduinoEthernetLEDStrip.NO_BRIGHT));
-            Assert.IsNotNull(postSet["g2"].Equals(ArduinoEthernetLEDStrip.MAX_BRIGHT));
-            Assert.IsNotNull(postSet["b2"].Equals(ArduinoEthernetLEDStrip.NO_BRIGHT));
+            Assert.IsNotNull(postSet["r2"].Equals(ArduinoEthernetLEDStrip.NoBright));
+            Assert.IsNotNull(postSet["g2"].Equals(ArduinoEthernetLEDStrip.MaxBright));
+            Assert.IsNotNull(postSet["b2"].Equals(ArduinoEthernetLEDStrip.NoBright));
         }
 
         [TestMethod]

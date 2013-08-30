@@ -39,9 +39,15 @@ namespace BuildWatcher.Http
         public HttpListenerWrapper(HttpListener myListener, string serviceUri)
         {
             // should we validate the service Uri and listener objects?
-            this.myListener = myListener;
-            log.Debug("Adding listener prefix " + serviceUri);
-            myListener.Prefixes.Add(serviceUri);
+            if (myListener != null)
+            {
+                this.myListener = myListener;
+                log.Info("Adding listener prefix " + serviceUri);
+                if (serviceUri != null)
+                {
+                    this.myListener.Prefixes.Add(serviceUri);
+                }
+            }
         }
 
         /// <summary>
@@ -51,7 +57,7 @@ namespace BuildWatcher.Http
         /// <param name="oneBuildSet">The results of all the builds retrieved as a group under the key</param>
         public void AddData(String key, TfsLastTwoBuildResults[] oneBuildSet)
         {
-            buildResults[key] =  oneBuildSet;
+            buildResults[key] = oneBuildSet;
         }
 
         /// <summary>
@@ -68,12 +74,13 @@ namespace BuildWatcher.Http
                 // we can support multiple listeners if we ran this command multiple times on many threads
                 IAsyncResult result = myListener.BeginGetContext(new AsyncCallback(ListenerCallback), this);
                 // could look at result
+                log.Debug("Asynch result without waiting is " + result.IsCompleted);
             }
             catch (HttpListenerException e)
             {
                 log.Error("***********************");
                 log.Error("Unable to configure web server that makes build results available on prefix."
-                    +"It could be port # related if 'The parameter is incorrect' or permission related if 'Access is Denied'", e);
+                    + "It could be port # related if 'The parameter is incorrect' or permission related if 'Access is Denied'", e);
                 log.Error("***********************");
                 return false;
             }
@@ -87,7 +94,6 @@ namespace BuildWatcher.Http
             HttpListenerWrapper listener = (HttpListenerWrapper)result.AsyncState;
             // Call EndGetContext to complete the asynchronous operation.
             HttpListenerContext context = listener.myListener.EndGetContext(result);
-            HttpListenerRequest request = context.Request;
             // Obtain a response object.
             HttpListenerResponse response = context.Response;
             // Construct a response. 
@@ -96,21 +102,22 @@ namespace BuildWatcher.Http
             responseString += "<META HTTP-EQUIV='REFRESH' CONTENT='10'>";
             responseString += "<title>Build Status last shown on " + DateTime.Now.ToShortTimeString() + "</title>";
             responseString += "</head>";
-            responseString +="<BODY>";
+            responseString += "<BODY>";
             responseString += "<table cellspacing='0' border='1'>";
             foreach (String buildName in listener.buildResults.Keys)
             {
                 responseString += "<tr><td bgcolor='silver' colspan='2'>" + buildName + "</td></tr>";
                 TfsLastTwoBuildResults[] theBuildSet = listener.buildResults[buildName];
-                foreach (TfsLastTwoBuildResults aResultPair in theBuildSet) 
+                foreach (TfsLastTwoBuildResults aResultPair in theBuildSet)
                 {
-                    if (aResultPair.LastBuild != null){
-                        IBuildDetail lastBuild =  aResultPair.LastBuild;
+                    if (aResultPair.LastBuild != null)
+                    {
+                        IBuildDetail lastBuild = aResultPair.LastBuild;
                         String bgcolor = "white";
                         if (lastBuild.Status == BuildStatus.Succeeded)
                         {
                             bgcolor = "green";
-                        } 
+                        }
                         else if (lastBuild.Status == BuildStatus.PartiallySucceeded)
                         {
                             bgcolor = "yellow";
@@ -131,7 +138,7 @@ namespace BuildWatcher.Http
                 }
             }
             responseString += "</table>";
-            responseString+="</BODY></HTML>";
+            responseString += "</BODY></HTML>";
             byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
             // Get a response stream and write the response to it.
             response.ContentLength64 = buffer.Length;

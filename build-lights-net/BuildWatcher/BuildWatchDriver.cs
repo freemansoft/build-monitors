@@ -27,6 +27,7 @@ namespace BuildWatcher
     using Spring.Context.Support;
     using BuildWatcher.Tfs;
     using BuildWatcher.Http;
+    using System.Collections.ObjectModel;
 
     /// <summary>
     /// The main run loop for the build watcher
@@ -78,7 +79,9 @@ namespace BuildWatcher
                 //// the only thing I don't like about the spring config is that connection initialization errors are buried
                 //// so we break out this bean retreival separately so we can identify TFS connection problems
                 ctx.GetObject("myBuildServerConnection");
-            } catch (Spring.Objects.Factory.ObjectCreationException e) {
+            }
+            catch (Spring.Objects.Factory.ObjectCreationException e)
+            {
                 log.Error("Unable to connect to the TFS server.  Check configuration in App.config and that your server is up", e);
                 return;
             }
@@ -111,10 +114,13 @@ namespace BuildWatcher
         /// </summary>
         /// <param name="allAdapters">a list of build specifications</param>
         /// <param name="device">our potentially multi-indicator device</param>
-        private  void MonitorStatus()
+        private void MonitorStatus()
         {
             // this may fail silently if the URL isn't right or doesn't have permissions to open port
-            this.httpListenerWrapper.Start();
+            if (this.httpListenerWrapper != null)
+            {
+                this.httpListenerWrapper.Start();
+            }
             while (true)
             {
                 int index = 0;
