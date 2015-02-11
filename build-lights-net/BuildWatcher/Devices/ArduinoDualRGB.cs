@@ -65,7 +65,7 @@ namespace BuildWatcher.Devices
         {
             if (device == null)
             {
-                throw new ArgumentNullException("device","Serial Port Device is required");
+                throw new ArgumentNullException("device", "Serial Port Device is required");
             }
             this.device = device;
 
@@ -92,11 +92,16 @@ namespace BuildWatcher.Devices
                 {
                     log.Debug("Found some cruft left over in the channel " + trashInBuffer);
                 }
+                string trashInBuffer2 = device.ReadExisting();
+                if (trashInBuffer2.Length > 0)
+                {
+                    log.Debug("Found some cruft left over in the channel " + trashInBuffer2);
+                }
             }
 
             this.numberOfLamps = numberOfLamps;
             this.TurnOffLights(numberOfLamps);
-            log.Info("created Arduino Device on port "+device.PortName+" with "+numberOfLamps+" lamps");
+            log.Info("created Arduino Device on port " + device.PortName + " with " + numberOfLamps + " lamps");
         }
 
         /// <summary>
