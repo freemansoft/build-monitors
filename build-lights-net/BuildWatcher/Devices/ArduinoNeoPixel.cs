@@ -59,8 +59,9 @@ namespace BuildWatcher.Devices
         public void Indicate(int deviceNumber, int buildSetSize, int lastBuildsWereSuccessfulCount, int lastBuildsWerePartiallySuccessfulCount, int someoneIsBuildingCount)
         {
             this.device.Write("blank\r");
-            // ignore the device number because we aren't doing one build-set per pixel but one build per pixel as we iterate across sets
+            //// ignore the device number because we aren't doing one build-set per pixel but one build per pixel as we iterate across sets
             int currentBuildPattern = 1;
+            //// note that we go from highest build light to lowest.
             for (int buildIndex = numberOfLamps - 1; buildIndex >= 0; buildIndex--)
             {
                 //// blink the last (number building) LEDs - take into account there may be more builds than lamps
@@ -68,6 +69,11 @@ namespace BuildWatcher.Devices
                 {
                     currentBuildPattern = this.signalPatternBuilding;
                 }
+                else
+                {
+                    currentBuildPattern = 1;
+                }
+                //// now pick colors
                 if (buildIndex < buildSetSize - lastBuildsWereSuccessfulCount - lastBuildsWerePartiallySuccessfulCount)
                 {
                     this.device.Write("rgb " + buildIndex + " 25 0 0 " + currentBuildPattern + "\r");
