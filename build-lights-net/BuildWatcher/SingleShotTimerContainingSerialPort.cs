@@ -6,11 +6,11 @@
 
     public class SingleShotTimerContainingSerialPort : Timer
     {
-        public SerialPort device { get; set; }
+        public SerialPort Device { get; set; }
 
         public SingleShotTimerContainingSerialPort(SerialPort device, int timerInterval)
         {
-            this.device = device;
+            this.Device = device;
             Interval = timerInterval;
             AutoReset = false;
         }

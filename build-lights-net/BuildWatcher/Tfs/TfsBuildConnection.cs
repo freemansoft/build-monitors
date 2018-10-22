@@ -13,6 +13,7 @@
     /// An active TFS connection used by the BuildAdapter retrieve build information.
     /// Located in a separate class so we can share across monitors
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "Tfs")]
     public class TfsBuildConnection
     {
         /// <summary>
@@ -22,6 +23,7 @@
         /// <param name="userId">user id credentials</param>
         /// <param name="password">password credentials</param>
         /// <param name="domain">authenticating domain, might be different from this program</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "tfs")]
         public TfsBuildConnection(string tfsPath, string userId, string password, string domain)
         {
             this.NetCredentials = new NetworkCredential(userId, password, domain);
@@ -32,8 +34,9 @@
         /// <summary>
         ///  Gets or sets the url to the TFS server retrieved from configuration
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "Tfs")]
         public Uri TfsUrl { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the network credentials created from userid, password and domain
         /// </summary>
@@ -42,6 +45,7 @@
         /// <summary>
         /// Gets or sets the team project collection found by connecting to the TFS server
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "Tfs")]
         public TfsTeamProjectCollection TfsTeamProjects { get; set; }
 
         /// <summary>
@@ -60,7 +64,10 @@
             }
             else
             {
-                this.TfsTeamProjects = new TfsTeamProjectCollection(this.TfsUrl, new UICredentialsProvider());
+                //this.TfsTeamProjects = new TfsTeamProjectCollection(this.TfsUrl, new UICredentialsProvider());
+                this.TfsTeamProjects = new TfsTeamProjectCollection(this.TfsUrl,
+                    new TfsClientCredentials(null, true));
+
             }
 
             this.TfsTeamProjects.EnsureAuthenticated();

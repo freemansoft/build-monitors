@@ -18,7 +18,7 @@ namespace BuildWatcher.Devices
     using System.IO;
     //// HttpUtility only shows up if you have add a reference in the project
     ////project-->AddReference-->FrameWork Select System.Web
-    using System.Web; 
+    using System.Web;
 
 
     /// <summary>
@@ -26,7 +26,7 @@ namespace BuildWatcher.Devices
     /// in a set ignores the lamp. This means the strip cycles through the various build sets
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1709:IdentifiersShouldBeCasedCorrectly", MessageId = "LED"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "Arduino")]
-    public class ArduinoEthernetLEDStrip: IBuildIndicatorDevice
+    public class ArduinoEthernetLEDStrip : IBuildIndicatorDevice
     {
         /// <summary>
         /// log4net logger
@@ -35,11 +35,11 @@ namespace BuildWatcher.Devices
         /// <summary>
         /// arduino URL
         /// </summary>
-        private string uri = "http://arduino_led_strip.local/";
+        private readonly string uri = "http://arduino_led_strip.local/";
         /// <summary>
         /// Number of LEDs in our strand
         /// </summary>
-        private int numberOfLamps = 30;
+        private readonly int numberOfLamps = 30;
 
         /// <summary>
         /// constructor that tells us where and how big our strip is
@@ -81,15 +81,17 @@ namespace BuildWatcher.Devices
         /// <param name="deviceNumber"></param>
         public void IndicateProblem(int deviceNumber)
         {
-            this.Indicate(deviceNumber, numberOfLamps, 0, 0,0);
+            this.Indicate(deviceNumber, numberOfLamps, 0, 0, 0);
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Performance", "CA1822:MarkMembersAsStatic")]
         internal string CreatePostParameters(Dictionary<string, string> postSet)
         {
+            log.Debug("Posting " + postSet.Count + " values");
             StringBuilder parameters = new StringBuilder();
             bool isFirst = true;
-            foreach( KeyValuePair<string, string> oneField in postSet ){
+            foreach (KeyValuePair<string, string> oneField in postSet)
+            {
                 if (!isFirst)
                 {
                     parameters.Append("&");
@@ -105,9 +107,18 @@ namespace BuildWatcher.Devices
             return parameters.ToString();
         }
 
-        public const string MAX_BRIGHT = "200";
-        public const string MIX_BRIGHT = "150";
-        public const string NO_BRIGHT = "0";
+        /// <summary>
+        /// Single color brightness
+        /// </summary>
+        public const string MaxBright = "200";
+        /// <summary>
+        /// Brightness when more then one LED is used
+        /// </summary>
+        public const string MixBright = "150";
+        /// <summary>
+        /// go dark
+        /// </summary>
+        public const string NoBright = "0";
 
         /// <summary>
         /// Create a set of light post parameters in a dictionary that set all the lamps based on the number
@@ -119,7 +130,7 @@ namespace BuildWatcher.Devices
         /// <returns></returns>
         internal Dictionary<String, String> CreatePostDataSet(int buildSetSize, int lastBuildsWereSuccessfulCount, int lastBuildsWerePartiallySuccessfulCount)
         {
-            Dictionary<String, String>postSet = new Dictionary<string,string>();
+            Dictionary<String, String> postSet = new Dictionary<string, string>();
             int numberFailed = buildSetSize - lastBuildsWereSuccessfulCount - lastBuildsWerePartiallySuccessfulCount;
             postSet.Add("s0", "Builds:  " + buildSetSize);
             postSet.Add("s1", "Success: " + lastBuildsWereSuccessfulCount);
@@ -128,30 +139,31 @@ namespace BuildWatcher.Devices
             postSet.Add("s4", "            ");
             postSet.Add("s5", "            ");
             int lamp = 0;
-            while (lamp < numberOfLamps && lamp < buildSetSize){
+            while (lamp < numberOfLamps && lamp < buildSetSize)
+            {
                 if (lamp < numberFailed)
                 {
-                    postSet.Add("r" + lamp, MAX_BRIGHT);
-                    postSet.Add("g" + lamp, NO_BRIGHT);
-                    postSet.Add("b" + lamp, NO_BRIGHT);
+                    postSet.Add("r" + lamp, MaxBright);
+                    postSet.Add("g" + lamp, NoBright);
+                    postSet.Add("b" + lamp, NoBright);
                 }
                 else if (lamp < numberFailed + lastBuildsWerePartiallySuccessfulCount)
                 {
-                    postSet.Add("r" + lamp, MIX_BRIGHT);
-                    postSet.Add("g" + lamp, MIX_BRIGHT);
-                    postSet.Add("b" + lamp, NO_BRIGHT);
+                    postSet.Add("r" + lamp, MixBright);
+                    postSet.Add("g" + lamp, MixBright);
+                    postSet.Add("b" + lamp, NoBright);
                 }
                 else if (lamp < buildSetSize)
                 {
-                    postSet.Add("r" + lamp, NO_BRIGHT);
-                    postSet.Add("g" + lamp, MAX_BRIGHT);
-                    postSet.Add("b" + lamp, NO_BRIGHT);
+                    postSet.Add("r" + lamp, NoBright);
+                    postSet.Add("g" + lamp, MaxBright);
+                    postSet.Add("b" + lamp, NoBright);
                 }
                 else
                 {
-                    postSet.Add("r" + lamp, NO_BRIGHT);
-                    postSet.Add("g" + lamp, NO_BRIGHT);
-                    postSet.Add("b" + lamp, NO_BRIGHT);
+                    postSet.Add("r" + lamp, NoBright);
+                    postSet.Add("g" + lamp, NoBright);
+                    postSet.Add("b" + lamp, NoBright);
                 }
                 lamp++;
             }
@@ -167,7 +179,7 @@ namespace BuildWatcher.Devices
             UTF8Encoding ourEncoder = new UTF8Encoding();
 
             Byte[] byteArray = ourEncoder.GetBytes(postParameters);
-             //// WebRequest is an abstract class.  Create will create the right type for the URL
+            //// WebRequest is an abstract class.  Create will create the right type for the URL
             WebRequest request = WebRequest.Create(this.uri);
             request.Method = "POST";
             request.ContentType = "application/x-www-form-urlencoded";

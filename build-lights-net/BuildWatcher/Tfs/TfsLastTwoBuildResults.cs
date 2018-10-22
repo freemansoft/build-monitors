@@ -12,6 +12,7 @@
     /// <summary>
     /// Holds last two build results. We need the previous build result in case the latest build is still running
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "Tfs")]
     public class TfsLastTwoBuildResults
     {
         /// <summary>

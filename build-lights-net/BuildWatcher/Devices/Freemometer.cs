@@ -68,6 +68,7 @@ namespace BuildWatcher.Devices
         /// <param name="lastBuildsWereSuccessfulCount">number of completely successful builds</param>
         /// <param name="lastBuildsWerePartiallySuccessfulCount">number of partially successful builds</param>
         /// <param name="someoneIsBuildingCount">number of builds in progress</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1303:Do not pass literals as localized parameters", MessageId = "System.IO.Ports.SerialPort.Write(System.String)")]
         public void Indicate(int deviceNumber, int buildSetSize, int lastBuildsWereSuccessfulCount, int lastBuildsWerePartiallySuccessfulCount, int someoneIsBuildingCount)
         {
             if (deviceNumber > 0)
@@ -120,6 +121,7 @@ namespace BuildWatcher.Devices
         ///  Ignores any deviceNumber beyond 0
         /// </summary>
         /// <param name="deviceNumber">build number or light number, 0 based</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1303:Do not pass literals as localized parameters", MessageId = "System.IO.Ports.SerialPort.Write(System.String)")]
         public void IndicateProblem(int deviceNumber)
         {
             if (deviceNumber > 0)
@@ -145,10 +147,11 @@ namespace BuildWatcher.Devices
         /// timer call back to turn off the serial port
         /// </summary>
         /// <param name="serialPort">SerialPort to communicate over</param>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1303:Do not pass literals as localized parameters", MessageId = "System.IO.Ports.SerialPort.Write(System.String)")]
         private static void TurnOffRinger(Object source, ElapsedEventArgs e)
         {
             SingleShotTimerContainingSerialPort actualSource = (SingleShotTimerContainingSerialPort)source;
-            actualSource.device.Write("bell ring 0\r");
+            actualSource.Device.Write("bell ring 0\r");
         }
 
     }

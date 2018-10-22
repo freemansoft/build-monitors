@@ -52,20 +52,20 @@ namespace BuildWatcher.Devices
         /// <summary>
         /// the number of lamps in the device
         /// </summary>
-        private int numLamps;
+        private int numberOfLamps;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArduinoDualRGB"/> class. a proxy for the Arduino controlled dual RGB unit
         /// </summary>
         /// <param name="device">Serial port the device is connected two.  Can be virtual com port for bluetooth</param>
         /// <param name="canReset">determines if the device can be reset through DTR or if is actually reset on connect</param>
-        /// <param name="numLamps">the number of lamps in the device, used when turning off all the lights</param>
+        /// <param name="numberOfLamps">the number of lamps in the device, used when turning off all the lights</param>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "num")]
-        public ArduinoDualRGB(SerialPort device, bool canReset, int numLamps)
+        public ArduinoDualRGB(SerialPort device, bool canReset, int numberOfLamps)
         {
             if (device == null)
             {
-                throw new ArgumentNullException("device","Serial Port Device is required");
+                throw new ArgumentNullException("device", "Serial Port Device is required");
             }
             this.device = device;
 
@@ -92,21 +92,26 @@ namespace BuildWatcher.Devices
                 {
                     log.Debug("Found some cruft left over in the channel " + trashInBuffer);
                 }
+                string trashInBuffer2 = device.ReadExisting();
+                if (trashInBuffer2.Length > 0)
+                {
+                    log.Debug("Found some cruft left over in the channel " + trashInBuffer2);
+                }
             }
 
-            this.numLamps = numLamps;
-            this.TurnOffLights(numLamps);
-            log.Info("created Arduino Device on port "+device.PortName+" with "+numLamps+" lamps");
+            this.numberOfLamps = numberOfLamps;
+            this.TurnOffLights(numberOfLamps);
+            log.Info("created Arduino Device on port " + device.PortName + " with " + numberOfLamps + " lamps");
         }
 
         /// <summary>
         /// Turns off the number of lamps specified
         /// </summary>
-        /// <param name="numLampsToTurnOff">number of lamps to clear</param> 
+        /// <param name="numberOfLampsToTurnOff">number of lamps to clear</param> 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "num"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1702:CompoundWordsShouldBeCasedCorrectly", MessageId = "TurnOff")]
-        public void TurnOffLights(int numLampsToTurnOff)
+        public void TurnOffLights(int numberOfLampsToTurnOff)
         {
-            for (int deviceNumber = 0; deviceNumber < numLampsToTurnOff; deviceNumber++)
+            for (int deviceNumber = 0; deviceNumber < numberOfLampsToTurnOff; deviceNumber++)
             {
                 this.SetColor(deviceNumber, 0, 0, 0);
                 this.SetBlink(deviceNumber, 2, 0);
@@ -122,9 +127,9 @@ namespace BuildWatcher.Devices
         /// <param name="blue">vlaue of 0-15</param>
         public void SetColor(int deviceNumber, int red, int green, int blue)
         {
-            if (deviceNumber >= this.numLamps)
+            if (deviceNumber >= this.numberOfLamps)
             {
-                throw new ArgumentOutOfRangeException("device number " + deviceNumber + " is out of range:" + this.numLamps);
+                throw new ArgumentOutOfRangeException("device number " + deviceNumber + " is out of range:" + this.numberOfLamps);
             }
 
             byte[] buffer = new byte[7];
@@ -146,9 +151,9 @@ namespace BuildWatcher.Devices
         /// <param name="offTimeHalfSeconds">blink off time 0-15</param>
         public void SetBlink(int deviceNumber, int onTimeHalfSeconds, int offTimeHalfSeconds)
         {
-            if (deviceNumber >= this.numLamps)
+            if (deviceNumber >= this.numberOfLamps)
             {
-                throw new ArgumentOutOfRangeException("device number " + deviceNumber + " is out of range:" + this.numLamps);
+                throw new ArgumentOutOfRangeException("device number " + deviceNumber + " is out of range:" + this.numberOfLamps);
             }
 
             byte[] buffer = new byte[10];
@@ -187,7 +192,7 @@ namespace BuildWatcher.Devices
 
         /// <summary>
         ///  sets the indicator in device dependent fashion.
-        ///  Ignores any deviceNumber beyond configured numLamps
+        ///  Ignores any deviceNumber beyond configured numberOfLamps
         /// </summary>
         /// <param name="deviceNumber">build number or light number, 0 based</param>
         /// <param name="buildSetSize">number of builds in set</param>
@@ -201,7 +206,7 @@ namespace BuildWatcher.Devices
                 + " completelySuccessful:" + lastBuildsWereSuccessfulCount
                 + " partiallySuccessful:" + lastBuildsWerePartiallySuccessfulCount
                 + " currentlyBuilding:" + someoneIsBuildingCount);
-            if (deviceNumber >= this.numLamps)
+            if (deviceNumber >= this.numberOfLamps)
             {
                 return;
             }
@@ -234,12 +239,12 @@ namespace BuildWatcher.Devices
 
         /// <summary>
         ///  Indicates some vcs problem like timeouts, errors. currently only support "problem" without types.
-        ///  Ignores any deviceNumber beyond configured numLamps
+        ///  Ignores any deviceNumber beyond configured numberOfLamps
         /// </summary>
         /// <param name="deviceNumber">build number or light number, 0 based</param>
         public void IndicateProblem(int deviceNumber)
         {
-            if (deviceNumber >= this.numLamps)
+            if (deviceNumber >= this.numberOfLamps)
             {
                 return;
             }
