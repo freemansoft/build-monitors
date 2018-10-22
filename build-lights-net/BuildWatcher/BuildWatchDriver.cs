@@ -42,7 +42,7 @@ namespace BuildWatcher
         /// <summary>
         /// spring wired list of build adapters, build sets to be monitored
         /// </summary>
-        private List<TfsBuildAdapter> allAdapters;
+        private readonly List<TfsBuildAdapter> allAdapters;
         /// <summary>
         /// spring wired device that displays the build status
         /// </summary>
@@ -50,16 +50,16 @@ namespace BuildWatcher
         /// <summary>
         /// HTTP Listener wrapper for web page
         /// </summary>
-        private HttpListenerWrapper httpListenerWrapper;
+        private readonly HttpListenerWrapper httpListenerWrapper;
 
         /// <summary>
         /// delay between loops
         /// </summary>
-        private int pollPauseBetweenRequestsInMilliseconds;
+        private readonly int pollPauseBetweenRequestsInMilliseconds;
         /// <summary>
         /// delay after receiving any exception, give server time to recover
         /// </summary>
-        private int exceptionPauseInMilliseconds;
+        private readonly int exceptionPauseInMilliseconds;
 
         /// <summary>
         /// main program that instantiates the watcher and runs it
