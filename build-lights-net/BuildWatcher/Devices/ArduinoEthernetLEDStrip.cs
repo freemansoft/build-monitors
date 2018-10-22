@@ -35,11 +35,11 @@ namespace BuildWatcher.Devices
         /// <summary>
         /// arduino URL
         /// </summary>
-        private string uri = "http://arduino_led_strip.local/";
+        private readonly string uri = "http://arduino_led_strip.local/";
         /// <summary>
         /// Number of LEDs in our strand
         /// </summary>
-        private int numberOfLamps = 30;
+        private readonly int numberOfLamps = 30;
 
         /// <summary>
         /// constructor that tells us where and how big our strip is

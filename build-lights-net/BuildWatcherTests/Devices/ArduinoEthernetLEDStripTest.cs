@@ -23,13 +23,18 @@ namespace BuildWatcherTests.Devices
             BasicConfigurator.Configure();
         }
 
+        /// <summary>
+        /// ethernet device gets 6 status fields followed by 3 values per light
+        /// </summary>
+        public static int NumberOfHeaderFields = 6;
+
         [TestMethod]
         public void CreatePostDataSetTest()
         {
             // use the default configuration
             ArduinoEthernetLEDStrip stripController = new ArduinoEthernetLEDStrip(null, 0);
             Dictionary<string, string> postSet = stripController.CreatePostDataSet(3, 1, 1);
-            Assert.AreEqual(9,postSet.Count);
+            Assert.AreEqual(9+NumberOfHeaderFields,postSet.Count);
             Assert.IsNotNull(postSet["r0"].Equals(ArduinoEthernetLEDStrip.MaxBright));
             Assert.IsNotNull(postSet["g0"].Equals(ArduinoEthernetLEDStrip.NoBright));
             Assert.IsNotNull(postSet["b0"].Equals(ArduinoEthernetLEDStrip.NoBright));
@@ -49,10 +54,11 @@ namespace BuildWatcherTests.Devices
             // use the default configuration
             ArduinoEthernetLEDStrip stripController = new ArduinoEthernetLEDStrip(null, 0);
             Dictionary<string, string> postSet = stripController.CreatePostDataSet(3, 1, 1);
-            Assert.AreEqual(9,postSet.Count);
+            Assert.AreEqual(9+NumberOfHeaderFields,postSet.Count," Unexpected number of post data parameters");
             string parameters = stripController.CreatePostParameters(postSet);
             log.Info(parameters);
-            Assert.AreEqual(( 3 * 3 *3) /*3 leds with R&G&B labels with =*/ + 8/*form &*/ +5/*L0*/ +7/*L1*/ +5/*L2 */,parameters.Length);
+            // verify the length of the RGB setting parameters
+            Assert.AreEqual(( 3 * 3 *3) /*3 leds with R&G&B labels with =*/ + 8/*form &*/ +5/*L0*/ +7/*L1*/ +5/*L2 */,parameters.Substring(parameters.IndexOf("r0")).Length);
         }
 
 
